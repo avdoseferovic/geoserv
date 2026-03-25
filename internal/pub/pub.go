@@ -96,14 +96,6 @@ func GetNpc(id int) *eopub.EnfRecord {
 	return &NpcDB.Npcs[id-1]
 }
 
-// GetSpell returns the ESF record for the given spell ID (1-indexed), or nil.
-func GetSpell(id int) *eopub.EsfRecord {
-	if SpellDB == nil || id < 1 || id > len(SpellDB.Skills) {
-		return nil
-	}
-	return &SpellDB.Skills[id-1]
-}
-
 // GetClass returns the ECF record for the given class ID (1-indexed), or nil.
 func GetClass(id int) *eopub.EcfRecord {
 	if ClassDB == nil || id < 1 || id > len(ClassDB.Classes) {

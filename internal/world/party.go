@@ -149,14 +149,6 @@ func (p *Party) RemoveMember(playerID int) {
 	}
 }
 
-func (p *Party) disband() {
-	partyMu.Lock()
-	p.mu.Lock()
-	p.disbandLocked()
-	p.mu.Unlock()
-	partyMu.Unlock()
-}
-
 // disbandLocked expects both partyMu and p.mu to be held.
 func (p *Party) disbandLocked() {
 	closePkt := &server.PartyCloseServerPacket{}

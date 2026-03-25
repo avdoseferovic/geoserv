@@ -1,10 +1,8 @@
 package quest
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 // Quest represents a parsed EO+ quest file.
@@ -224,51 +222,8 @@ func extractQuotedString(line string) string {
 	return line[first+1 : last]
 }
 
-// String returns a debug representation of the quest.
-func (q *Quest) String() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Quest %d: %s (v%d)\n", q.ID, q.Name, q.Version)
-	for name, state := range q.States {
-		fmt.Fprintf(&b, "  State %s: %s\n", name, state.Description)
-		for _, a := range state.Actions {
-			fmt.Fprintf(&b, "    Action: %s(%v)\n", a.Name, a.Args)
-		}
-		for _, r := range state.Rules {
-			fmt.Fprintf(&b, "    Rule: %s(%v) -> %s\n", r.Name, r.Args, r.Goto)
-		}
-	}
-	return b.String()
-}
-
 // GetState returns a state by name, or nil.
 func (q *Quest) GetState(name string) *State {
 	return q.States[name]
 }
 
-// GetNpcActions returns actions for a specific NPC ID in the given state.
-// Filters AddNpcText and AddNpcInput by their first arg (NPC ID).
-func (s *State) GetNpcActions(npcID int) []Action {
-	var result []Action
-	for _, a := range s.Actions {
-		lower := strings.ToLower(a.Name)
-		switch lower {
-		case "addnpctext", "addnpcinput":
-			if len(a.Args) > 0 && !a.Args[0].IsStr && a.Args[0].IntVal == npcID {
-				result = append(result, a)
-			}
-		case "showhint":
-			result = append(result, a)
-		}
-	}
-	return result
-}
-
-// IsValidIdentifier checks if a string is a valid quest identifier.
-func IsValidIdentifier(s string) bool {
-	for _, r := range s {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
-			return false
-		}
-	}
-	return len(s) > 0
-}

@@ -237,11 +237,3 @@ func giveExpToPlayer(p *player.Player, exp int, killedData server.NpcKilledData)
 		})
 	}
 }
-
-// getNpcIDFromIndex gets the ENF ID for an NPC at a given index on the player's map.
-func getNpcIDFromIndex(p *player.Player, npcIndex int) int {
-	if p.World == nil {
-		return 0
-	}
-	return p.World.GetNpcEnfID(p.MapID, npcIndex)
-}

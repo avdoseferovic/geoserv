@@ -54,66 +54,10 @@ func LoadQuests(dir string) error {
 	return nil
 }
 
-// PlayerQuestState tracks a player's progress in a single quest.
-type PlayerQuestState struct {
-	QuestID    int
-	StateName  string
-	NpcKills   map[int]int // npcID -> kill count
-	ItemsGiven map[int]int // itemID -> count given
-}
-
-// PlayerQuestProgress tracks all quest progress for a player.
-type PlayerQuestProgress struct {
-	ActiveQuests    map[int]*PlayerQuestState // questID -> state
-	CompletedQuests map[int]bool              // questID -> completed
-}
-
-// NewPlayerQuestProgress creates a new empty quest progress tracker.
-func NewPlayerQuestProgress() *PlayerQuestProgress {
-	return &PlayerQuestProgress{
-		ActiveQuests:    make(map[int]*PlayerQuestState),
-		CompletedQuests: make(map[int]bool),
-	}
-}
-
-// GetQuestState returns the current state name for a quest, or "Begin" if not started.
-func (p *PlayerQuestProgress) GetQuestState(questID int) string {
-	if qs, ok := p.ActiveQuests[questID]; ok {
-		return qs.StateName
-	}
-	return "Begin"
-}
-
-// SetQuestState updates the player's state for a quest.
-func (p *PlayerQuestProgress) SetQuestState(questID int, stateName string) {
-	if _, ok := p.ActiveQuests[questID]; !ok {
-		p.ActiveQuests[questID] = &PlayerQuestState{
-			QuestID:    questID,
-			StateName:  stateName,
-			NpcKills:   make(map[int]int),
-			ItemsGiven: make(map[int]int),
-		}
-	} else {
-		p.ActiveQuests[questID].StateName = stateName
-	}
-}
-
-// CompleteQuest marks a quest as completed.
-func (p *PlayerQuestProgress) CompleteQuest(questID int) {
-	delete(p.ActiveQuests, questID)
-	p.CompletedQuests[questID] = true
-}
-
 // QuestPlayerContext provides player state needed for quest rule evaluation.
 type QuestPlayerContext struct {
 	NpcKills  map[int]int // npcID -> kill count (from active quest state)
 	Inventory map[int]int // itemID -> amount
-}
-
-// ProcessRule checks if a rule condition is met and returns the goto state.
-// Returns ("", false) if the rule doesn't apply.
-func ProcessRule(rule Rule, npcInputChoice int) (string, bool) {
-	return ProcessRuleWithContext(rule, npcInputChoice, nil)
 }
 
 // ProcessRuleWithContext checks if a rule condition is met, using player context for inventory/kill checks.

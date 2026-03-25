@@ -26,15 +26,3 @@ func LevelForExp(exp int) int {
 	}
 	return 0
 }
-
-// BaseDamage calculates simple melee damage. Placeholder formula.
-func BaseDamage(str, minDmg, maxDmg int) int {
-	base := str/2 + minDmg
-	if maxDmg > minDmg {
-		base += maxDmg - minDmg
-	}
-	if base < 1 {
-		base = 1
-	}
-	return base
-}
