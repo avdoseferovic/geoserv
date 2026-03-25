@@ -67,7 +67,7 @@ func handleItemDrop(ctx context.Context, p *player.Player, reader *player.EoRead
 	}
 
 	dropX, dropY := p.CharX, p.CharY
-	if !(pkt.Coords.X == 255 && pkt.Coords.Y == 255) {
+	if pkt.Coords.X != 255 || pkt.Coords.Y != 255 {
 		// ByteCoords are offset by 1 (raw byte encoding)
 		dropX = pkt.Coords.X - 1
 		dropY = pkt.Coords.Y - 1

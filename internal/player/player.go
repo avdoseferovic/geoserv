@@ -67,7 +67,7 @@ type Player struct {
 	// Mu protects all mutable character state (inventory, stats, trade, quest).
 	// Held during handler execution and SaveCharacter to prevent concurrent access
 	// between the handler goroutine and the save/ping loops.
-	Mu   sync.Mutex
+	Mu sync.Mutex
 
 	ID    int
 	IP    string

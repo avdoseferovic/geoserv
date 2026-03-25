@@ -101,7 +101,7 @@ func (pb *PacketBus) Recv() (eonet.PacketAction, eonet.PacketFamily, *data.EoRea
 // validForEncryption checks whether a packet should be encrypted/decrypted.
 // Init packets (action=0xFF, family=0xFF) are never encrypted.
 func validForEncryption(buf []byte) bool {
-	return len(buf) > 2 && !(buf[0] == 0xFF && buf[1] == 0xFF)
+	return len(buf) > 2 && (buf[0] != 0xFF || buf[1] != 0xFF)
 }
 
 // EncryptPacket applies EO packet encryption.

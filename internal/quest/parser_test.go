@@ -208,4 +208,3 @@ state Begin
 		t.Errorf("rule[1] = {%q, goto %q}", r1.Name, r1.Goto)
 	}
 }
-

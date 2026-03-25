@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
-
-	"fmt"
 
 	"github.com/avdo/goeoserv/internal/formula"
 	"github.com/avdo/goeoserv/internal/gamemap"

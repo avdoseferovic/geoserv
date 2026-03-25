@@ -226,4 +226,3 @@ func extractQuotedString(line string) string {
 func (q *Quest) GetState(name string) *State {
 	return q.States[name]
 }
-

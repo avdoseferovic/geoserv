@@ -5,12 +5,12 @@ import "testing"
 func TestProcessRule(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name       string
-		rule       Rule
-		npcChoice  int
-		ctx        *QuestPlayerContext
-		wantGoto   string
-		wantMatch  bool
+		name      string
+		rule      Rule
+		npcChoice int
+		ctx       *QuestPlayerContext
+		wantGoto  string
+		wantMatch bool
 	}{
 		{
 			name:      "InputNpc matching choice",
@@ -115,4 +115,3 @@ func TestProcessRule(t *testing.T) {
 		})
 	}
 }
-

@@ -87,13 +87,15 @@ func handlePlayersRequest(ctx context.Context, p *player.Player, _ *player.EoRea
 }
 
 // No-op stubs for unimplemented features
-func handleCitizenNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error       { return nil }
-func handlePriestNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error        { return nil }
-func handleMarriageNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error      { return nil }
-func handleAdminInteractNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error { return nil }
-func handleBookNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error          { return nil }
-func handleMessageNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error       { return nil }
-func handlePlayersNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error       { return nil }
+func handleCitizenNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error  { return nil }
+func handlePriestNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error   { return nil }
+func handleMarriageNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error { return nil }
+func handleAdminInteractNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error {
+	return nil
+}
+func handleBookNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error    { return nil }
+func handleMessageNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error { return nil }
+func handlePlayersNoop(_ context.Context, _ *player.Player, _ *player.EoReader) error { return nil }
 
 func adminIcon(admin int) server.CharacterIcon {
 	switch {

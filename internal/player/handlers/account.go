@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"errors"
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"strings"
 

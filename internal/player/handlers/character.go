@@ -82,7 +82,7 @@ func handleCharacterCreate(ctx context.Context, p *player.Player, reader *player
 		return nil
 	}
 	for _, r := range pkt.Name {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') {
 			return nil
 		}
 	}

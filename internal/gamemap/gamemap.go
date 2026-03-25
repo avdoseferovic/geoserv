@@ -190,7 +190,6 @@ func (m *GameMap) Face(playerID int, direction int) {
 	})
 }
 
-
 // GetPlayerBus returns the PacketBus for a player on this map.
 func (m *GameMap) GetPlayerBus(playerID int) *protocol.PacketBus {
 	m.mu.RLock()
@@ -216,7 +215,6 @@ func (m *GameMap) GetNearbyInfo() server.NearbyInfo {
 		Items:      m.getGroundItemInfosLocked(),
 	}
 }
-
 
 // FindPlayerByName finds a player by character name on this map.
 func (m *GameMap) FindPlayerByName(name string) (int, bool) {
@@ -264,7 +262,6 @@ func (m *GameMap) getNpcMapInfosLocked() []server.NpcMapInfo {
 	}
 	return infos
 }
-
 
 func padGuildTag(tag string) string {
 	for len(tag) < 3 {
@@ -320,7 +317,6 @@ func (m *GameMap) GetOnlinePlayers() []OnlinePlayerInfo {
 	}
 	return result
 }
-
 
 // PlayerPosition holds a player's map and coordinates.
 type PlayerPosition struct {
@@ -379,8 +375,6 @@ func (m *GameMap) UpdateEquipment(playerID, boots, armor, hat, shield, weapon in
 		}
 	}
 }
-
-
 
 // RemoveAndReturn removes a player from the map and returns their MapCharacter.
 func (m *GameMap) RemoveAndReturn(playerID int) *MapCharacter {

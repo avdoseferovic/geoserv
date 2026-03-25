@@ -23,7 +23,7 @@ var (
 	npcDropIndex map[int][]eopubsrv.DropRecord
 
 	// mapMetaCache caches map RID and file size to avoid disk I/O per login.
-	mapMetaCache   map[int]mapMeta
+	mapMetaCache map[int]mapMeta
 )
 
 type mapMeta struct {

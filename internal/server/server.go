@@ -236,8 +236,8 @@ func (s *Server) RunPingLoop(ctx context.Context) {
 			// to avoid blocking all player operations during network I/O.
 			s.mu.Lock()
 			type pingTarget struct {
-				player  *player.Player
-				id      int
+				player   *player.Player
+				id       int
 				timedOut bool
 			}
 			targets := make([]pingTarget, 0, len(s.players))
