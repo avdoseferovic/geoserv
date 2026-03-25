@@ -89,7 +89,18 @@ func (s *Server) acceptLoop(ctx context.Context) {
 }
 
 var wsUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	// security: restrict origins to prevent Cross-Site WebSocket Hijacking.
+	// Game clients connect directly (not from a browser origin), so we check
+	// that Origin is either empty (non-browser) or matches the Host header.
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // non-browser client
+		}
+		return origin == "http://"+r.Host || origin == "https://"+r.Host
+	},
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
 }
 
 func (s *Server) startWebSocketListener(ctx context.Context, addr string) {
@@ -100,6 +111,9 @@ func (s *Server) startWebSocketListener(ctx context.Context, addr string) {
 			slog.Error("websocket upgrade failed", "err", err)
 			return
 		}
+
+		// Limit max incoming WS message to 65KB (EO packet max is 65535 + 2 byte prefix)
+		ws.SetReadLimit(68000)
 
 		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 

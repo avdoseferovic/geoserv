@@ -2,10 +2,13 @@ package player
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/binary"
 	"fmt"
 	"log/slog"
-	"math/rand/v2"
+	"sync"
+	"time"
 
 	"github.com/avdo/goeoserv/internal/config"
 	"github.com/avdo/goeoserv/internal/db"
@@ -61,6 +64,11 @@ type WorldInterface interface {
 }
 
 type Player struct {
+	// Mu protects all mutable character state (inventory, stats, trade, quest).
+	// Held during handler execution and SaveCharacter to prevent concurrent access
+	// between the handler goroutine and the save/ping loops.
+	Mu   sync.Mutex
+
 	ID    int
 	IP    string
 	State ClientState
@@ -144,6 +152,10 @@ func New(id int, conn *protocol.Conn, ip string, cfg *config.Config, database *d
 	}
 }
 
+// maxPacketsPerSecond limits the rate of incoming packets per connection
+// to prevent packet flooding DoS attacks.
+const maxPacketsPerSecond = 100
+
 // Run is the main player loop, reading and dispatching packets.
 func (p *Player) Run(ctx context.Context) {
 	// Create a connection-scoped context that cancels when the player disconnects.
@@ -154,6 +166,24 @@ func (p *Player) Run(ctx context.Context) {
 			slog.Debug("failed to close connection", "id", p.ID, "err", err)
 		}
 	}()
+
+	// Hangup timer: disconnect clients that don't initialize within HangupDelay
+	hangupDelay := p.Cfg.Server.HangupDelay
+	if hangupDelay <= 0 {
+		hangupDelay = 10 // default 10 seconds
+	}
+	hangupTimer := time.AfterFunc(time.Duration(hangupDelay)*time.Second, func() {
+		if p.State == StateUninitialized {
+			slog.Info("hangup timeout (no init)", "id", p.ID)
+			_ = p.conn.Close()
+		}
+	})
+	defer hangupTimer.Stop()
+
+	// Packet rate limiter: simple token bucket
+	var pktCount int
+	pktWindowStart := time.Now()
+
 	for {
 		select {
 		case <-connCtx.Done():
@@ -164,6 +194,16 @@ func (p *Player) Run(ctx context.Context) {
 		action, family, reader, err := p.Bus.Recv()
 		if err != nil {
 			slog.Debug("player disconnected", "id", p.ID, "err", err)
+			return
+		}
+
+		// Rate limit: disconnect clients that exceed maxPacketsPerSecond
+		pktCount++
+		if elapsed := time.Since(pktWindowStart); elapsed >= time.Second {
+			pktCount = 1
+			pktWindowStart = time.Now()
+		} else if pktCount > maxPacketsPerSecond {
+			slog.Warn("packet rate limit exceeded, disconnecting", "id", p.ID)
 			return
 		}
 
@@ -194,7 +234,12 @@ func (p *Player) Run(ctx context.Context) {
 
 		slog.Debug("packet received", "id", p.ID, "family", int(family), "action", int(action), "state", p.State)
 
-		if err := p.handlePacket(connCtx, action, family, reader); err != nil {
+		// Lock player state during handler execution to prevent races
+		// with the save loop and other concurrent accessors.
+		p.Mu.Lock()
+		err = p.handlePacket(connCtx, action, family, reader)
+		p.Mu.Unlock()
+		if err != nil {
 			slog.Error("error handling packet",
 				"id", p.ID,
 				"family", family,
@@ -239,6 +284,9 @@ func (p *Player) Die() {
 // It saves position, stats, and inventory in a single transaction.
 // Uses context.Background() since this may be called during disconnect/save loops.
 func (p *Player) SaveCharacter() error {
+	p.Mu.Lock()
+	defer p.Mu.Unlock()
+
 	if p.CharacterID == nil {
 		return nil
 	}
@@ -324,10 +372,14 @@ func (p *Player) handlePacket(ctx context.Context, action eonet.PacketAction, fa
 	return handler(ctx, p, reader)
 }
 
-// GenerateSessionID creates and stores a random session ID.
+// GenerateSessionID creates and stores a cryptographically random session ID.
 // Must fit in an EO short (max 64008).
 func (p *Player) GenerateSessionID() int {
-	id := rand.IntN(64000) + 1
+	var buf [4]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		panic(fmt.Sprintf("crypto/rand failed: %v", err))
+	}
+	id := int(binary.LittleEndian.Uint32(buf[:]))%64000 + 1
 	p.SessionID = &id
 	return id
 }

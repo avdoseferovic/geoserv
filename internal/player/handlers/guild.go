@@ -58,6 +58,17 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 		return nil
 	}
 
+	// Validate guild tag and name lengths
+	if len(pkt.GuildTag) < p.Cfg.Guild.MinTagLength || len(pkt.GuildTag) > p.Cfg.Guild.MaxTagLength {
+		return nil
+	}
+	if len(pkt.GuildName) < 3 || len(pkt.GuildName) > p.Cfg.Guild.MaxNameLength {
+		return nil
+	}
+	if len(pkt.Description) > p.Cfg.Guild.MaxDescriptionLength {
+		return nil
+	}
+
 	result, err := p.DB.DB().ExecContext(ctx,
 		`INSERT INTO guilds (tag, name, description) VALUES (?, ?, ?)`,
 		pkt.GuildTag, pkt.GuildName, pkt.Description)

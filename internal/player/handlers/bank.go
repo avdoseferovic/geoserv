@@ -48,6 +48,11 @@ func handleBankDeposit(ctx context.Context, p *player.Player, reader *player.EoR
 		return nil
 	}
 
+	// Validate session to ensure bank was opened
+	if _, ok := p.TakeSessionID(); !ok {
+		return nil
+	}
+
 	gold := p.Inventory[1] // gold = item ID 1
 	if pkt.Amount > gold || pkt.Amount <= 0 {
 		return nil
@@ -73,6 +78,11 @@ func handleBankWithdraw(ctx context.Context, p *player.Player, reader *player.Eo
 	var pkt client.BankTakeClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		slog.Error("failed to deserialize bank withdraw", "id", p.ID, "err", err)
+		return nil
+	}
+
+	// Validate session to ensure bank was opened
+	if _, ok := p.TakeSessionID(); !ok {
 		return nil
 	}
 

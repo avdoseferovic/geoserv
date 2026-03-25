@@ -77,6 +77,16 @@ func handleCharacterCreate(ctx context.Context, p *player.Player, reader *player
 		return nil
 	}
 
+	// Validate character name: 3-16 lowercase alphanumeric only
+	if len(pkt.Name) < 3 || len(pkt.Name) > p.Cfg.Character.MaxNameLength {
+		return nil
+	}
+	for _, r := range pkt.Name {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+			return nil
+		}
+	}
+
 	// Validate appearance
 	if pkt.HairColor < 0 || pkt.HairColor > p.Cfg.Character.MaxHairColor ||
 		pkt.HairStyle < 0 || pkt.HairStyle > p.Cfg.Character.MaxHairStyle {
@@ -220,6 +230,7 @@ func handleCharacterRemove(ctx context.Context, p *player.Player, reader *player
 		return nil
 	}
 
+	// security: table names are from a hardcoded slice, not user input — safe from SQL injection.
 	for _, table := range []string{
 		"character_inventory", "character_bank", "character_spells",
 		"character_quest_progress",

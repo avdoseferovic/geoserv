@@ -11,7 +11,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const readDeadline = 60 * time.Second
+const (
+	readDeadline  = 60 * time.Second
+	writeDeadline = 10 * time.Second
+)
 
 // ConnType distinguishes TCP from WebSocket connections.
 type ConnType int
@@ -97,12 +100,14 @@ func (c *Conn) ReadPacket() ([]byte, error) {
 func (c *Conn) WritePacket(buf []byte) error {
 	switch c.connType {
 	case ConnTCP:
+		_ = c.tcp.SetWriteDeadline(time.Now().Add(writeDeadline))
 		_, err := c.tcp.Write(buf)
 		return err
 
 	case ConnWebSocket:
 		c.wsMu.Lock()
 		defer c.wsMu.Unlock()
+		_ = c.ws.SetWriteDeadline(time.Now().Add(writeDeadline))
 		return c.ws.WriteMessage(websocket.BinaryMessage, buf)
 
 	default:
