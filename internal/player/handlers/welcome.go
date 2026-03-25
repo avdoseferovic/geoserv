@@ -9,6 +9,7 @@ import (
 
 	"github.com/avdo/goeoserv/internal/gamemap"
 	"github.com/avdo/goeoserv/internal/player"
+	pubdata "github.com/avdo/goeoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
@@ -40,8 +41,12 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 		str, intl, wis, agi, con, cha                    int
 		statPoints, skillPoints                          int
 		adminLevel, gender, race, hairStyle, hairColor   int
-		goldBank                                         int
+		goldBank, classID                                int
 		name, home, guildTag                             string
+		eqBoots, eqAccessory, eqGloves, eqBelt           int
+		eqArmor, eqNecklace, eqHat, eqShield, eqWeapon   int
+		eqRing1, eqRing2, eqArmlet1, eqArmlet2           int
+		eqBracer1, eqBracer2                             int
 	)
 	_ = home
 
@@ -51,7 +56,11 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 		        c.strength, c.intelligence, c.wisdom, c.agility, c.constitution, c.charisma,
 		        c.stat_points, c.skill_points,
 		        c.admin_level, c.gender, c.race, c.hair_style, c.hair_color,
-		        c.gold_bank, COALESCE(g.tag, '')
+		        c.gold_bank, c.class, COALESCE(g.tag, ''),
+		        c.boots, c.accessory, c.gloves, c.belt,
+		        c.armor, c.necklace, c.hat, c.shield, c.weapon,
+		        c.ring, c.ring2, c.armlet, c.armlet2,
+		        c.bracer, c.bracer2
 		 FROM characters c
 		 LEFT JOIN guilds g ON c.guild_id = g.id
 		 WHERE c.id = ?`, pkt.CharacterId,
@@ -60,7 +69,11 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 		&str, &intl, &wis, &agi, &con, &cha,
 		&statPoints, &skillPoints,
 		&adminLevel, &gender, &race, &hairStyle, &hairColor,
-		&goldBank, &guildTag)
+		&goldBank, &classID, &guildTag,
+		&eqBoots, &eqAccessory, &eqGloves, &eqBelt,
+		&eqArmor, &eqNecklace, &eqHat, &eqShield, &eqWeapon,
+		&eqRing1, &eqRing2, &eqArmlet1, &eqArmlet2,
+		&eqBracer1, &eqBracer2)
 	if err == sql.ErrNoRows {
 		slog.Warn("character not found", "character_id", pkt.CharacterId)
 		p.Close()
@@ -107,6 +120,14 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 	p.StatPoints = statPoints
 	p.SkillPoints = skillPoints
 	p.GoldBank = goldBank
+	p.ClassID = classID
+	p.GuildTag = guildTag
+	p.Equipment = player.Equipment{
+		Boots: eqBoots, Accessory: eqAccessory, Gloves: eqGloves, Belt: eqBelt,
+		Armor: eqArmor, Necklace: eqNecklace, Hat: eqHat, Shield: eqShield, Weapon: eqWeapon,
+		Ring: [2]int{eqRing1, eqRing2}, Armlet: [2]int{eqArmlet1, eqArmlet2},
+		Bracer: [2]int{eqBracer1, eqBracer2},
+	}
 	p.State = player.StateEnteringGame
 
 	// Load inventory from DB
@@ -119,6 +140,9 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 		slog.Warn("failed to load spells", "id", p.ID, "err", err)
 	}
 
+	// Calculate derived stats from base + equipment + class
+	p.CalculateStats()
+
 	sessionID := p.GenerateSessionID()
 
 	return p.Bus.SendPacket(&server.WelcomeReplyServerPacket{
@@ -127,21 +151,21 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 			SessionId:     sessionID,
 			CharacterId:   charID,
 			MapId:         mapID,
-			MapRid:        []int{0, 0},
-			MapFileSize:   0,
-			EifRid:        []int{0, 0},
-			EifLength:     0,
-			EnfRid:        []int{0, 0},
-			EnfLength:     0,
-			EsfRid:        []int{0, 0},
-			EsfLength:     0,
-			EcfRid:        []int{0, 0},
-			EcfLength:     0,
+			MapRid:        pubdata.MapRid(mapID),
+			MapFileSize:   pubdata.MapFileSize(mapID),
+			EifRid:        pubdata.EifRid(),
+			EifLength:     pubdata.EifLength(),
+			EnfRid:        pubdata.EnfRid(),
+			EnfLength:     pubdata.EnfLength(),
+			EsfRid:        pubdata.EsfRid(),
+			EsfLength:     pubdata.EsfLength(),
+			EcfRid:        pubdata.EcfRid(),
+			EcfLength:     pubdata.EcfLength(),
 			Name:          name,
 			Title:         "",
 			GuildName:     "",
 			GuildRankName: "",
-			ClassId:       0,
+			ClassId:       p.ClassID,
 			GuildTag:      padGuildTag(guildTag),
 			Admin:         protocol.AdminLevel(adminLevel),
 			Level:         level,
@@ -149,19 +173,19 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 			Usage:         0,
 			Stats: server.CharacterStatsWelcome{
 				Hp:          hp,
-				MaxHp:       maxHP,
+				MaxHp:       p.CharMaxHP,
 				Tp:          tp,
-				MaxTp:       maxTP,
-				MaxSp:       0,
-				StatPoints:  0,
-				SkillPoints: 0,
+				MaxTp:       p.CharMaxTP,
+				MaxSp:       p.CharMaxSP,
+				StatPoints:  p.StatPoints,
+				SkillPoints: p.SkillPoints,
 				Karma:       0,
 				Secondary: server.CharacterSecondaryStats{
-					MinDamage: 0,
-					MaxDamage: 0,
-					Accuracy:  0,
-					Evade:     0,
-					Armor:     0,
+					MinDamage: p.MinDamage,
+					MaxDamage: p.MaxDamage,
+					Accuracy:  p.Accuracy,
+					Evade:     p.Evade,
+					Armor:     p.Armor,
 				},
 				Base: server.CharacterBaseStatsWelcome{
 					Str:  str,
@@ -173,9 +197,18 @@ func handleWelcomeRequest(p *player.Player, reader *player.EoReader) error {
 				},
 			},
 			Equipment: server.EquipmentWelcome{
-				Ring:   []int{0, 0},
-				Armlet: []int{0, 0},
-				Bracer: []int{0, 0},
+				Boots:     p.Equipment.Boots,
+				Gloves:    p.Equipment.Gloves,
+				Accessory: p.Equipment.Accessory,
+				Armor:     p.Equipment.Armor,
+				Belt:      p.Equipment.Belt,
+				Necklace:  p.Equipment.Necklace,
+				Hat:       p.Equipment.Hat,
+				Shield:    p.Equipment.Shield,
+				Weapon:    p.Equipment.Weapon,
+				Ring:      []int{p.Equipment.Ring[0], p.Equipment.Ring[1]},
+				Armlet:    []int{p.Equipment.Armlet[0], p.Equipment.Armlet[1]},
+				Bracer:    []int{p.Equipment.Bracer[0], p.Equipment.Bracer[1]},
 			},
 		},
 	})
@@ -284,7 +317,14 @@ func handleWelcomeMsg(p *player.Player, reader *player.EoReader) error {
 			MaxHP:     p.CharMaxHP,
 			TP:        p.CharTP,
 			MaxTP:     p.CharMaxTP,
-			Bus:       p.Bus,
+			Equipment: gamemap.EquipmentData{
+				Boots:  pubdata.ItemGraphicID(p.Equipment.Boots),
+				Armor:  pubdata.ItemGraphicID(p.Equipment.Armor),
+				Hat:    pubdata.ItemGraphicID(p.Equipment.Hat),
+				Shield: pubdata.ItemGraphicID(p.Equipment.Shield),
+				Weapon: pubdata.ItemGraphicID(p.Equipment.Weapon),
+			},
+			Bus: p.Bus,
 		})
 	}
 
@@ -301,13 +341,27 @@ func handleWelcomeMsg(p *player.Player, reader *player.EoReader) error {
 	slog.Info("player entered game", "id", p.ID, "character", p.CharName,
 		"map", p.MapID, "x", p.CharX, "y", p.CharY)
 
+	// Build inventory list
+	var items []eonet.Item
+	for itemID, qty := range p.Inventory {
+		if qty > 0 {
+			items = append(items, eonet.Item{Id: itemID, Amount: qty})
+		}
+	}
+
+	// Build spell list
+	var spells []eonet.Spell
+	for _, sp := range p.Spells {
+		spells = append(spells, eonet.Spell{Id: sp.ID, Level: sp.Level})
+	}
+
 	return p.Bus.SendPacket(&server.WelcomeReplyServerPacket{
 		WelcomeCode: server.WelcomeCode_EnterGame,
 		WelcomeCodeData: &server.WelcomeReplyWelcomeCodeDataEnterGame{
 			News:   []string{"Welcome to goeoserv!", "", "", "", "", "", "", "", ""},
-			Weight: eonet.Weight{Current: 0, Max: 70},
-			Items:  []eonet.Item{},
-			Spells: []eonet.Spell{},
+			Weight: eonet.Weight{Current: p.Weight, Max: p.MaxWeight},
+			Items:  items,
+			Spells: spells,
 			Nearby: nearby,
 		},
 	})
@@ -322,7 +376,11 @@ func loadInventory(p *player.Player) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Warn("failed to close rows", "err", err)
+		}
+	}()
 	for rows.Next() {
 		var itemID, qty int
 		if err := rows.Scan(&itemID, &qty); err != nil {
@@ -342,7 +400,11 @@ func loadSpells(p *player.Player) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Warn("failed to close rows", "err", err)
+		}
+	}()
 	p.Spells = nil
 	for rows.Next() {
 		var spellID, level int

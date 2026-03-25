@@ -45,7 +45,7 @@ func (m *GameMap) DropItem(itemID, amount, x, y, droppedBy int) int {
 
 	m.groundItems = append(m.groundItems, item)
 
-	// Broadcast item appear to all players
+	// Broadcast item appear to nearby players (exclude dropper — they get ItemDropServerPacket)
 	pkt := &server.ItemAddServerPacket{
 		ItemId:     itemID,
 		ItemIndex:  uid,
@@ -53,6 +53,9 @@ func (m *GameMap) DropItem(itemID, amount, x, y, droppedBy int) int {
 		Coords:     eoproto.Coords{X: x, Y: y},
 	}
 	for _, ch := range m.players {
+		if ch.PlayerID == droppedBy {
+			continue
+		}
 		_ = ch.Bus.SendPacket(pkt)
 	}
 

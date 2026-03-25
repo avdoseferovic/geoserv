@@ -104,9 +104,20 @@ func (p *PlayerQuestProgress) CompleteQuest(questID int) {
 	p.CompletedQuests[questID] = true
 }
 
+// QuestPlayerContext provides player state needed for quest rule evaluation.
+type QuestPlayerContext struct {
+	NpcKills  map[int]int // npcID -> kill count (from active quest state)
+	Inventory map[int]int // itemID -> amount
+}
+
 // ProcessRule checks if a rule condition is met and returns the goto state.
 // Returns ("", false) if the rule doesn't apply.
 func ProcessRule(rule Rule, npcInputChoice int) (string, bool) {
+	return ProcessRuleWithContext(rule, npcInputChoice, nil)
+}
+
+// ProcessRuleWithContext checks if a rule condition is met, using player context for inventory/kill checks.
+func ProcessRuleWithContext(rule Rule, npcInputChoice int, ctx *QuestPlayerContext) (string, bool) {
 	lower := strings.ToLower(rule.Name)
 	switch lower {
 	case "inputnpc":
@@ -118,10 +129,26 @@ func ProcessRule(rule Rule, npcInputChoice int) (string, bool) {
 		// TalkedToNpc(npc_id) — always true when talking to the NPC
 		return rule.Goto, true
 	case "killednpcs":
-		// KilledNpcs(npc_id, count) — TODO: check kill count
+		// KilledNpcs(npc_id, count)
+		if ctx == nil || len(rule.Args) < 2 {
+			return "", false
+		}
+		npcID := rule.Args[0].IntVal
+		required := rule.Args[1].IntVal
+		if ctx.NpcKills[npcID] >= required {
+			return rule.Goto, true
+		}
 		return "", false
 	case "gotitems":
-		// GotItems(item_id, count) — TODO: check inventory
+		// GotItems(item_id, count)
+		if ctx == nil || len(rule.Args) < 2 {
+			return "", false
+		}
+		itemID := rule.Args[0].IntVal
+		required := rule.Args[1].IntVal
+		if ctx.Inventory[itemID] >= required {
+			return rule.Goto, true
+		}
 		return "", false
 	case "always":
 		return rule.Goto, true

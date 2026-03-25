@@ -14,6 +14,7 @@ import (
 	"github.com/avdo/goeoserv/internal/config"
 	"github.com/avdo/goeoserv/internal/db"
 	"github.com/avdo/goeoserv/internal/gamemap"
+	pubdata "github.com/avdo/goeoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
@@ -81,6 +82,21 @@ func (w *World) LoadMaps() error {
 
 	slog.Info("maps loaded", "count", count)
 	return nil
+}
+
+// InitNpcStats sets NPC HP/stats from ENF data for all loaded maps.
+func (w *World) InitNpcStats() {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	for _, m := range w.maps {
+		m.InitNpcStats(func(npcID int) int {
+			rec := pubdata.GetNpc(npcID)
+			if rec != nil {
+				return rec.Hp
+			}
+			return 1
+		})
+	}
 }
 
 // GetMap returns the map with the given ID, or nil if not found.
@@ -331,4 +347,199 @@ func (w *World) GetPlayerBus(playerID int) any {
 		}
 	}
 	return nil
+}
+
+// GetPlayerPosition finds a player across all maps and returns their position.
+func (w *World) GetPlayerPosition(playerID int) any {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	for _, m := range w.maps {
+		if pos := m.GetPlayerPosition(playerID); pos != nil {
+			return pos
+		}
+	}
+	return nil
+}
+
+// OnlinePlayerCount returns the total number of players across all maps.
+func (w *World) OnlinePlayerCount() int {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	count := 0
+	for _, m := range w.maps {
+		count += m.PlayerCount()
+	}
+	return count
+}
+
+// GetOnlinePlayers returns info for all online players across all maps.
+func (w *World) GetOnlinePlayers() any {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	var result []gamemap.OnlinePlayerInfo
+	for _, m := range w.maps {
+		result = append(result, m.GetOnlinePlayers()...)
+	}
+	return result
+}
+
+// BroadcastToAdmins sends a packet to all players with admin level >= minAdmin.
+func (w *World) BroadcastToAdmins(excludePlayerID int, minAdmin int, pkt any) {
+	p, ok := pkt.(eonet.Packet)
+	if !ok {
+		return
+	}
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	for _, m := range w.maps {
+		m.BroadcastToAdmins(excludePlayerID, minAdmin, p)
+	}
+}
+
+// WarpPlayer moves a player from one map to another. Returns NearbyInfo for the new map.
+func (w *World) WarpPlayer(playerID, fromMapID, toMapID, toX, toY int) any {
+	w.mu.RLock()
+	fromMap := w.maps[fromMapID]
+	toMap := w.maps[toMapID]
+	w.mu.RUnlock()
+
+	if fromMap == nil || toMap == nil {
+		return nil
+	}
+
+	ch := fromMap.RemoveAndReturn(playerID)
+	if ch == nil {
+		return nil
+	}
+
+	ch.X = toX
+	ch.Y = toY
+	ch.MapID = toMapID
+	toMap.Enter(ch)
+
+	info := toMap.GetNearbyInfo()
+	return &info
+}
+
+// BroadcastToGuild sends a packet to all online players in a guild (by tag).
+func (w *World) BroadcastToGuild(excludePlayerID int, guildTag string, pkt any) {
+	p, ok := pkt.(eonet.Packet)
+	if !ok || guildTag == "" {
+		return
+	}
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	for _, m := range w.maps {
+		m.BroadcastToGuild(excludePlayerID, guildTag, p)
+	}
+}
+
+// BroadcastToParty sends a packet to all party members of the player's party.
+func (w *World) BroadcastToParty(playerID int, pkt any) {
+	p, ok := pkt.(eonet.Packet)
+	if !ok {
+		return
+	}
+	party := GetParty(playerID)
+	if party != nil {
+		party.BroadcastToParty(p)
+	}
+}
+
+// GetChestItems returns items in a chest at given coords on a map.
+func (w *World) GetChestItems(mapID, x, y int) any {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return nil
+	}
+	return m.GetChestItems(x, y)
+}
+
+// AddChestItem adds an item to a chest. Returns updated item list.
+func (w *World) AddChestItem(mapID, x, y, itemID, amount int) any {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return nil
+	}
+	return m.AddChestItem(x, y, itemID, amount)
+}
+
+// TakeChestItem takes an item from a chest.
+func (w *World) TakeChestItem(mapID, x, y, itemID int) (int, any) {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return 0, nil
+	}
+	amt, items := m.TakeChestItem(x, y, itemID)
+	return amt, items
+}
+
+// GetNpcEnfID returns the ENF record ID for an NPC at a given index on a map.
+func (w *World) GetNpcEnfID(mapID, npcIndex int) int {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return 0
+	}
+	npc := m.GetNpc(npcIndex)
+	if npc == nil {
+		return 0
+	}
+	return npc.ID
+}
+
+// GetPlayerName returns a player's character name by searching all maps.
+func (w *World) GetPlayerName(playerID int) string {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	for _, m := range w.maps {
+		if name := m.GetPlayerName(playerID); name != "" {
+			return name
+		}
+	}
+	return ""
+}
+
+// GetPendingWarp returns the pending warp destination for a player.
+func (w *World) GetPendingWarp(mapID, playerID int) (int, int, int, bool) {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return 0, 0, 0, false
+	}
+	warp := m.GetPendingWarp(playerID)
+	if warp == nil {
+		return 0, 0, 0, false
+	}
+	return warp.MapID, warp.X, warp.Y, true
+}
+
+// SetPendingWarp sets a pending warp on a player's map character.
+func (w *World) SetPendingWarp(mapID, playerID, toMapID, toX, toY int) {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.SetPendingWarp(playerID, &gamemap.WarpDest{MapID: toMapID, X: toX, Y: toY})
+}
+
+// UpdateMapEquipment updates the visible equipment on a player's map character.
+func (w *World) UpdateMapEquipment(mapID, playerID, boots, armor, hat, shield, weapon int) {
+	w.mu.RLock()
+	m := w.maps[mapID]
+	w.mu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.UpdateEquipment(playerID, boots, armor, hat, shield, weapon)
 }

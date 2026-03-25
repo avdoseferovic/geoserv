@@ -108,11 +108,44 @@ func handleGuildTell(p *player.Player, reader *player.EoReader) error {
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
 	}
-	_ = pkt
+	// Look up guild members from DB
+	rows, err := p.DB.Query(context.Background(),
+		`SELECT c.name, COALESCE(c.level, 0)
+		 FROM characters c
+		 JOIN guilds g ON c.guild_id = g.id
+		 WHERE g.tag = ?
+		 ORDER BY c.name`,
+		pkt.GuildIdentity)
+	if err != nil {
+		slog.Error("error querying guild members", "id", p.ID, "err", err)
+		return p.Bus.SendPacket(&server.GuildTellServerPacket{
+			Members: []server.GuildMember{},
+		})
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Warn("failed to close rows", "err", err)
+		}
+	}()
 
-	// TODO: Look up guild and return member list
+	var members []server.GuildMember
+	rank := 1
+	for rows.Next() {
+		var name string
+		var level int
+		if err := rows.Scan(&name, &level); err != nil {
+			continue
+		}
+		members = append(members, server.GuildMember{
+			Rank:     rank,
+			Name:     name,
+			RankName: "Member",
+		})
+		rank++
+	}
+
 	return p.Bus.SendPacket(&server.GuildTellServerPacket{
-		Members: []server.GuildMember{},
+		Members: members,
 	})
 }
 

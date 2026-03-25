@@ -39,11 +39,16 @@ func (m *GameMap) SpawnNPCs(instantSpawn bool) {
 	index := 0
 	for _, npcDef := range m.emf.Npcs {
 		for i := 0; i < npcDef.Amount; i++ {
+			spawnX, spawnY := npcDef.Coords.X, npcDef.Coords.Y
+			if instantSpawn {
+				spawnX, spawnY = m.findFreeSpawnTile(spawnX, spawnY)
+			}
+
 			npc := &NpcState{
 				Index:     index,
 				ID:        npcDef.Id,
-				X:         npcDef.Coords.X,
-				Y:         npcDef.Coords.Y,
+				X:         spawnX,
+				Y:         spawnY,
 				SpawnX:    npcDef.Coords.X,
 				SpawnY:    npcDef.Coords.Y,
 				Direction: rand.IntN(4),
@@ -60,6 +65,103 @@ func (m *GameMap) SpawnNPCs(instantSpawn bool) {
 
 			m.npcs = append(m.npcs, npc)
 			index++
+		}
+	}
+}
+
+// findFreeSpawnTile finds a walkable unoccupied tile near (x, y).
+// Searches in expanding rings up to 5 tiles away. Returns the original coords if nothing is free.
+// Must be called while holding m.mu.
+func (m *GameMap) findFreeSpawnTile(x, y int) (int, int) {
+	if !m.isTileOccupiedLocked(x, y) {
+		return x, y
+	}
+	for radius := 1; radius <= 5; radius++ {
+		for dx := -radius; dx <= radius; dx++ {
+			for dy := -radius; dy <= radius; dy++ {
+				if dx == 0 && dy == 0 {
+					continue
+				}
+				nx, ny := x+dx, y+dy
+				if nx < 0 || ny < 0 || nx > m.emf.Width || ny > m.emf.Height {
+					continue
+				}
+				if m.isTileWalkableNpcLocked(nx, ny) && !m.isTileOccupiedLocked(nx, ny) {
+					return nx, ny
+				}
+			}
+		}
+	}
+	return x, y
+}
+
+// isTileOccupiedLocked is isTileOccupied without locking (caller must hold mu).
+func (m *GameMap) isTileOccupiedLocked(x, y int) bool {
+	for _, ch := range m.players {
+		if ch.X == x && ch.Y == y {
+			return true
+		}
+	}
+	for _, other := range m.npcs {
+		if other.Alive && other.X == x && other.Y == y {
+			return true
+		}
+	}
+	return false
+}
+
+// isTileWalkableNpcLocked is isTileWalkableNpc without locking (caller must hold mu).
+func (m *GameMap) isTileWalkableNpcLocked(x, y int) bool {
+	for _, row := range m.emf.WarpRows {
+		if row.Y == y {
+			for _, warp := range row.Tiles {
+				if warp.X == x {
+					return false
+				}
+			}
+		}
+	}
+	if spec, ok := m.tiles[[2]int{x, y}]; ok {
+		switch spec {
+		case eomap.MapTileSpec_Wall,
+			eomap.MapTileSpec_Edge,
+			eomap.MapTileSpec_NpcBoundary,
+			eomap.MapTileSpec_ChairDown,
+			eomap.MapTileSpec_ChairLeft,
+			eomap.MapTileSpec_ChairRight,
+			eomap.MapTileSpec_ChairUp,
+			eomap.MapTileSpec_ChairDownRight,
+			eomap.MapTileSpec_ChairUpLeft,
+			eomap.MapTileSpec_ChairAll,
+			eomap.MapTileSpec_Chest,
+			eomap.MapTileSpec_BankVault,
+			eomap.MapTileSpec_Board1,
+			eomap.MapTileSpec_Board2,
+			eomap.MapTileSpec_Board3,
+			eomap.MapTileSpec_Board4,
+			eomap.MapTileSpec_Board5,
+			eomap.MapTileSpec_Board6,
+			eomap.MapTileSpec_Board7,
+			eomap.MapTileSpec_Board8,
+			eomap.MapTileSpec_Jukebox:
+			return false
+		}
+	}
+	return true
+}
+
+// InitNpcStats sets HP for all NPCs using a lookup function.
+func (m *GameMap) InitNpcStats(getHP func(npcID int) int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, npc := range m.npcs {
+		hp := getHP(npc.ID)
+		if hp <= 0 {
+			hp = 1
+		}
+		npc.MaxHP = hp
+		if npc.Alive {
+			npc.HP = hp
 		}
 	}
 }
@@ -121,10 +223,11 @@ func (m *GameMap) TickNPCs(actRate int) {
 			// Respawn countdown
 			npc.SpawnTicks--
 			if npc.SpawnTicks <= 0 {
+				sx, sy := m.findFreeSpawnTile(npc.SpawnX, npc.SpawnY)
 				npc.Alive = true
 				npc.HP = npc.MaxHP
-				npc.X = npc.SpawnX
-				npc.Y = npc.SpawnY
+				npc.X = sx
+				npc.Y = sy
 				npc.Direction = rand.IntN(4)
 				npc.Opponents = nil
 
@@ -166,18 +269,71 @@ func (m *GameMap) npcRandomWalk(npc *NpcState) bool {
 		return false
 	}
 
-	// Check tile blocking
-	if spec, ok := m.tiles[[2]int{newX, newY}]; ok {
-		switch spec {
-		case eomap.MapTileSpec_Wall, eomap.MapTileSpec_Edge, eomap.MapTileSpec_NpcBoundary:
-			return false
-		}
+	if !m.isTileWalkableNpc(newX, newY) || m.isTileOccupied(newX, newY) {
+		return false
 	}
 
 	npc.X = newX
 	npc.Y = newY
 	npc.Direction = dir
 	return true
+}
+
+// isTileWalkableNpc checks if an NPC can walk on a tile (walls, chairs, warps, etc. block).
+func (m *GameMap) isTileWalkableNpc(x, y int) bool {
+	// Block on warps
+	for _, row := range m.emf.WarpRows {
+		if row.Y == y {
+			for _, warp := range row.Tiles {
+				if warp.X == x {
+					return false
+				}
+			}
+		}
+	}
+
+	if spec, ok := m.tiles[[2]int{x, y}]; ok {
+		switch spec {
+		case eomap.MapTileSpec_Wall,
+			eomap.MapTileSpec_Edge,
+			eomap.MapTileSpec_NpcBoundary,
+			eomap.MapTileSpec_ChairDown,
+			eomap.MapTileSpec_ChairLeft,
+			eomap.MapTileSpec_ChairRight,
+			eomap.MapTileSpec_ChairUp,
+			eomap.MapTileSpec_ChairDownRight,
+			eomap.MapTileSpec_ChairUpLeft,
+			eomap.MapTileSpec_ChairAll,
+			eomap.MapTileSpec_Chest,
+			eomap.MapTileSpec_BankVault,
+			eomap.MapTileSpec_Board1,
+			eomap.MapTileSpec_Board2,
+			eomap.MapTileSpec_Board3,
+			eomap.MapTileSpec_Board4,
+			eomap.MapTileSpec_Board5,
+			eomap.MapTileSpec_Board6,
+			eomap.MapTileSpec_Board7,
+			eomap.MapTileSpec_Board8,
+			eomap.MapTileSpec_Jukebox:
+			return false
+		}
+	}
+	return true
+}
+
+// isTileOccupied checks if a tile is occupied by a player or another alive NPC.
+func (m *GameMap) isTileOccupied(x, y int) bool {
+	for _, ch := range m.players {
+		if ch.X == x && ch.Y == y {
+			return true
+		}
+	}
+	for _, other := range m.npcs {
+		if other.Alive && other.X == x && other.Y == y {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *GameMap) broadcastNpcWalk(npc *NpcState) {

@@ -18,8 +18,20 @@ func init() {
 	player.Register(eonet.PacketFamily_Party, eonet.PacketAction_Take, handlePartyTake)
 }
 
-// Pending invites: invitedPlayerID -> inviterPlayerID
-var pendingInvites = make(map[int]int)
+// pendingInvite stores info about the inviter so we can create a proper party.
+type pendingInvite struct {
+	PlayerID int
+	Name     string
+	Level    int
+	HP       int
+	MaxHP    int
+	MapID    int
+	Bus      *protocol.PacketBus
+	Player   *player.Player
+}
+
+// Pending invites: invitedPlayerID -> inviter info
+var pendingInvites = make(map[int]pendingInvite)
 
 func handlePartyRequest(p *player.Player, reader *player.EoReader) error {
 	if p.State != player.StateInGame || p.World == nil {
@@ -35,7 +47,16 @@ func handlePartyRequest(p *player.Player, reader *player.EoReader) error {
 	targetID := pkt.PlayerId
 
 	// Send invite to the target player
-	pendingInvites[targetID] = p.ID
+	pendingInvites[targetID] = pendingInvite{
+		PlayerID: p.ID,
+		Name:     p.CharName,
+		Level:    p.CharLevel,
+		HP:       p.CharHP,
+		MaxHP:    p.CharMaxHP,
+		MapID:    p.MapID,
+		Bus:      p.Bus,
+		Player:   p,
+	}
 
 	p.World.SendToPlayer(targetID, &server.PartyRequestServerPacket{
 		RequestType:     pkt.RequestType,
@@ -57,8 +78,8 @@ func handlePartyAccept(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	inviterID, ok := pendingInvites[p.ID]
-	if !ok || inviterID != pkt.InviterPlayerId {
+	invite, ok := pendingInvites[p.ID]
+	if !ok || invite.PlayerID != pkt.InviterPlayerId {
 		return nil
 	}
 	delete(pendingInvites, p.ID)
@@ -69,30 +90,26 @@ func handlePartyAccept(p *player.Player, reader *player.EoReader) error {
 		Level:    p.CharLevel,
 		HP:       p.CharHP,
 		MaxHP:    p.CharMaxHP,
+		MapID:    p.MapID,
 		Bus:      p.Bus,
+		Player:   p,
 	}
 
 	// Check if inviter already has a party
-	party := worldpkg.GetParty(inviterID)
+	party := worldpkg.GetParty(invite.PlayerID)
 	if party != nil {
 		party.AddMember(newMember, p.Cfg.Limits.MaxPartySize)
 	} else {
-		// Create new party with inviter as leader
-		// We need the inviter's info — get it from world
+		// Create new party with inviter as leader using stored info
 		inviterMember := worldpkg.PartyMemberInfo{
-			PlayerID: inviterID,
-			Name:     "", // simplified
-			Level:    0,
-			HP:       0,
-			MaxHP:    0,
-			Bus:      nil,
-		}
-
-		// Try to get inviter's bus from world
-		if busRaw := p.World.GetPlayerBus(inviterID); busRaw != nil {
-			if bus, ok := busRaw.(*protocol.PacketBus); ok {
-				inviterMember.Bus = bus
-			}
+			PlayerID: invite.PlayerID,
+			Name:     invite.Name,
+			Level:    invite.Level,
+			HP:       invite.HP,
+			MaxHP:    invite.MaxHP,
+			MapID:    invite.MapID,
+			Bus:      invite.Bus,
+			Player:   invite.Player,
 		}
 
 		party = worldpkg.CreateParty(inviterMember)

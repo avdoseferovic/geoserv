@@ -22,7 +22,9 @@ type PartyMemberInfo struct {
 	Level    int
 	HP       int
 	MaxHP    int
+	MapID    int
 	Bus      *protocol.PacketBus
+	Player   any // *player.Player — stored as any to avoid import cycles
 }
 
 var (
@@ -175,6 +177,19 @@ func (p *Party) BroadcastToParty(pkt eonet.Packet) {
 	for _, m := range p.Members {
 		_ = m.Bus.SendPacket(pkt)
 	}
+}
+
+// GetMembersOnMap returns party members that are on the specified map.
+func (p *Party) GetMembersOnMap(mapID int) []PartyMemberInfo {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	var result []PartyMemberInfo
+	for _, m := range p.Members {
+		if m.MapID == mapID {
+			result = append(result, m)
+		}
+	}
+	return result
 }
 
 func hpPct(hp, maxHP int) int {

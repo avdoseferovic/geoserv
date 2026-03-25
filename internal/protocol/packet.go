@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	"github.com/ethanmoffat/eolib-go/v3/encrypt"
@@ -41,6 +42,7 @@ func (pb *PacketBus) Send(action eonet.PacketAction, family eonet.PacketFamily, 
 		copy(buf[2:], encrypted)
 	}
 
+	slog.Debug("packet send", "action", int(action), "family", int(family), "len", len(buf), "raw", fmt.Sprintf("%x", buf))
 	return pb.conn.WritePacket(buf)
 }
 
@@ -71,6 +73,8 @@ func (pb *PacketBus) Recv() (eonet.PacketAction, eonet.PacketFamily, *data.EoRea
 		copy(packetBuf, decrypted)
 	}
 
+	slog.Debug("packet recv", "len", len(packetBuf), "raw", fmt.Sprintf("%x", packetBuf))
+
 	action := eonet.PacketAction(packetBuf[0])
 	family := eonet.PacketFamily(packetBuf[1])
 
@@ -78,8 +82,17 @@ func (pb *PacketBus) Recv() (eonet.PacketAction, eonet.PacketFamily, *data.EoRea
 	return action, family, reader, nil
 }
 
+// validForEncryption checks whether a packet should be encrypted/decrypted.
+// Init packets (action=0xFF, family=0xFF) are never encrypted.
+func validForEncryption(buf []byte) bool {
+	return len(buf) > 2 && !(buf[0] == 0xFF && buf[1] == 0xFF)
+}
+
 // EncryptPacket applies EO packet encryption.
 func EncryptPacket(buf []byte, multiple int) []byte {
+	if !validForEncryption(buf) {
+		return buf
+	}
 	result, _ := encrypt.SwapMultiples(buf, multiple)
 	result = encrypt.Interleave(result)
 	result = encrypt.FlipMsb(result)
@@ -88,6 +101,9 @@ func EncryptPacket(buf []byte, multiple int) []byte {
 
 // DecryptPacket applies EO packet decryption (reverse of encrypt).
 func DecryptPacket(buf []byte, multiple int) []byte {
+	if !validForEncryption(buf) {
+		return buf
+	}
 	result := encrypt.FlipMsb(buf)
 	result = encrypt.Deinterleave(result)
 	result, _ = encrypt.SwapMultiples(result, multiple)

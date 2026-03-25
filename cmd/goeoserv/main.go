@@ -10,6 +10,7 @@ import (
 
 	"github.com/avdo/goeoserv/internal/config"
 	"github.com/avdo/goeoserv/internal/db"
+	pubdata "github.com/avdo/goeoserv/internal/pub"
 	"github.com/avdo/goeoserv/internal/quest"
 	"github.com/avdo/goeoserv/internal/server"
 	"github.com/avdo/goeoserv/internal/world"
@@ -33,7 +34,7 @@ func main() {
 	fmt.Printf("%s v%s\n\n", banner, version)
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: slog.LevelDebug,
 	})))
 
 	cfg, err := config.Load("config/Config.toml")
@@ -62,6 +63,11 @@ func main() {
 		}
 	}
 
+	// Load pub files (EIF/ENF/ESF/ECF)
+	if err := pubdata.LoadAll(); err != nil {
+		slog.Warn("failed to load pub files", "err", err)
+	}
+
 	// Load quests
 	if err := quest.LoadQuests("data/quests"); err != nil {
 		slog.Warn("failed to load quests", "err", err)
@@ -72,6 +78,9 @@ func main() {
 	if err := w.LoadMaps(); err != nil {
 		slog.Warn("failed to load maps", "err", err)
 	}
+
+	// Set NPC HP from ENF data
+	w.InitNpcStats()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

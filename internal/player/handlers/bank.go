@@ -28,7 +28,7 @@ func handleBankOpen(p *player.Player, reader *player.EoReader) error {
 
 	sessionID := p.GenerateSessionID()
 
-	// TODO: Load actual gold_bank from DB
+	// gold_bank is loaded from DB during character select (welcome.go)
 	return p.Bus.SendPacket(&server.BankOpenServerPacket{
 		GoldBank:       p.GoldBank,
 		SessionId:      sessionID,

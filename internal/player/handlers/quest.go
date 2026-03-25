@@ -77,15 +77,25 @@ func handleQuestAccept(p *player.Player, reader *player.EoReader) error {
 		}
 	}
 
+	// Build quest context for rule evaluation
+	questCtx := &quest.QuestPlayerContext{
+		Inventory: p.Inventory,
+		NpcKills:  make(map[int]int),
+	}
+	if qs, ok := p.QuestProgress.ActiveQuests[pkt.QuestId]; ok {
+		_ = qs // NpcKills tracked at quest progress level if needed
+	}
+
 	// Process rules to find the next state
 	for _, rule := range state.Rules {
-		nextState, matched := quest.ProcessRule(rule, actionID)
+		nextState, matched := quest.ProcessRuleWithContext(rule, actionID, questCtx)
 		if matched {
 			if strings.ToLower(nextState) == "goreset" || strings.ToLower(nextState) == "done" {
 				// Quest reset or completed
 				if strings.ToLower(nextState) == "done" {
 					p.QuestProgress.CompleteQuest(pkt.QuestId)
-					// TODO: Execute reward actions
+					// Execute reward actions from the current state
+					executeQuestRewards(p, state)
 				} else {
 					p.QuestProgress.SetQuestState(pkt.QuestId, "Begin")
 				}
@@ -204,4 +214,39 @@ func sendQuestDialog(p *player.Player, q *quest.Quest, state *quest.State, quest
 		QuestEntries:  questEntries,
 		DialogEntries: dialogEntries,
 	})
+}
+
+// executeQuestRewards processes reward actions from a quest state (GiveItem, GiveExp, etc).
+func executeQuestRewards(p *player.Player, state *quest.State) {
+	for _, action := range state.Actions {
+		lower := strings.ToLower(action.Name)
+		switch lower {
+		case "giveitem":
+			// GiveItem(item_id, amount)
+			if len(action.Args) >= 2 && !action.Args[0].IsStr && !action.Args[1].IsStr {
+				itemID := action.Args[0].IntVal
+				amount := action.Args[1].IntVal
+				p.Inventory[itemID] += amount
+			}
+		case "giveexp":
+			// GiveExp(amount)
+			if len(action.Args) >= 1 && !action.Args[0].IsStr {
+				p.CharExp += action.Args[0].IntVal
+			}
+		case "removeitem":
+			// RemoveItem(item_id, amount)
+			if len(action.Args) >= 2 && !action.Args[0].IsStr && !action.Args[1].IsStr {
+				itemID := action.Args[0].IntVal
+				amount := action.Args[1].IntVal
+				p.Inventory[itemID] -= amount
+				if p.Inventory[itemID] <= 0 {
+					delete(p.Inventory, itemID)
+				}
+			}
+		case "setclass":
+			// SetClass(class_id) - placeholder
+		case "setrace":
+			// SetRace(race_id) - placeholder
+		}
+	}
 }

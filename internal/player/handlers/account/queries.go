@@ -3,9 +3,11 @@ package account
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"strings"
 
 	"github.com/avdo/goeoserv/internal/db"
+	pubdata "github.com/avdo/goeoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -57,7 +59,11 @@ func GetCharacterList(database *db.Database, accountID int) ([]server.CharacterS
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Warn("failed to close rows", "err", err)
+		}
+	}()
 
 	var characters []server.CharacterSelectionListEntry
 	for rows.Next() {
@@ -81,11 +87,11 @@ func GetCharacterList(database *db.Database, accountID int) ([]server.CharacterS
 			Skin:      skin,
 			Admin:     protocol.AdminLevel(admin),
 			Equipment: server.EquipmentCharacterSelect{
-				Boots:  boots,
-				Armor:  armor,
-				Hat:    hat,
-				Shield: shield,
-				Weapon: weapon,
+				Boots:  pubdata.ItemGraphicID(boots),
+				Armor:  pubdata.ItemGraphicID(armor),
+				Hat:    pubdata.ItemGraphicID(hat),
+				Shield: pubdata.ItemGraphicID(shield),
+				Weapon: pubdata.ItemGraphicID(weapon),
 			},
 		})
 	}

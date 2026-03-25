@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/avdo/goeoserv/internal/player"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
+	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
 
 func init() {
@@ -14,17 +15,45 @@ func init() {
 	player.Register(eonet.PacketFamily_Range, eonet.PacketAction_Request, handleRangeRequest)
 }
 
-func handleNpcRangeRequest(_ *player.Player, _ *player.EoReader) error {
-	// TODO: Send nearby NPC data
+func handleNpcRangeRequest(p *player.Player, _ *player.EoReader) error {
+	if p.State != player.StateInGame || p.World == nil {
+		return nil
+	}
+	raw := p.World.GetNearbyInfo(p.MapID)
+	if ni, ok := raw.(*server.NearbyInfo); ok && ni != nil {
+		return p.Bus.SendPacket(&server.RangeReplyServerPacket{
+			Nearby: server.NearbyInfo{
+				Npcs: ni.Npcs,
+			},
+		})
+	}
 	return nil
 }
 
-func handlePlayerRangeRequest(_ *player.Player, _ *player.EoReader) error {
-	// TODO: Send nearby player data
+func handlePlayerRangeRequest(p *player.Player, _ *player.EoReader) error {
+	if p.State != player.StateInGame || p.World == nil {
+		return nil
+	}
+	raw := p.World.GetNearbyInfo(p.MapID)
+	if ni, ok := raw.(*server.NearbyInfo); ok && ni != nil {
+		return p.Bus.SendPacket(&server.RangeReplyServerPacket{
+			Nearby: server.NearbyInfo{
+				Characters: ni.Characters,
+			},
+		})
+	}
 	return nil
 }
 
-func handleRangeRequest(_ *player.Player, _ *player.EoReader) error {
-	// TODO: Send nearby everything
+func handleRangeRequest(p *player.Player, _ *player.EoReader) error {
+	if p.State != player.StateInGame || p.World == nil {
+		return nil
+	}
+	raw := p.World.GetNearbyInfo(p.MapID)
+	if ni, ok := raw.(*server.NearbyInfo); ok && ni != nil {
+		return p.Bus.SendPacket(&server.RangeReplyServerPacket{
+			Nearby: *ni,
+		})
+	}
 	return nil
 }

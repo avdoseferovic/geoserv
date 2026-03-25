@@ -1,7 +1,12 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
 	"log/slog"
+	"strconv"
+	"strings"
 
 	"github.com/avdo/goeoserv/internal/player"
 	"github.com/avdo/goeoserv/internal/protocol"
@@ -23,14 +28,49 @@ func handleInitInit(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Check bans
-	// TODO: Check version min/max
+	// Check IP bans
+	var banCount int
+	err := p.DB.QueryRow(context.Background(),
+		`SELECT COUNT(1) FROM bans WHERE ip = ?
+		 AND (duration = 0 OR datetime(created_at, '+' || duration || ' minutes') > datetime('now'))`,
+		p.IP).Scan(&banCount)
+	if err != nil && err != sql.ErrNoRows {
+		slog.Error("error checking IP ban", "id", p.ID, "err", err)
+	}
+	if banCount > 0 {
+		_ = p.Bus.SendPacket(&server.InitInitServerPacket{
+			ReplyCode:     server.InitReply_Banned,
+			ReplyCodeData: &server.InitInitReplyCodeDataBanned{},
+		})
+		p.Close()
+		return nil
+	}
+
+	// Check client version
+	if p.Cfg.Server.MinVersion != "" || p.Cfg.Server.MaxVersion != "" {
+		clientVer := fmt.Sprintf("%d.%d.%d", pkt.Version.Major, pkt.Version.Minor, pkt.Version.Patch)
+		if p.Cfg.Server.MinVersion != "" && compareVersions(clientVer, p.Cfg.Server.MinVersion) < 0 {
+			_ = p.Bus.SendPacket(&server.InitInitServerPacket{
+				ReplyCode:     server.InitReply_OutOfDate,
+				ReplyCodeData: &server.InitInitReplyCodeDataOutOfDate{},
+			})
+			p.Close()
+			return nil
+		}
+		if p.Cfg.Server.MaxVersion != "" && compareVersions(clientVer, p.Cfg.Server.MaxVersion) > 0 {
+			_ = p.Bus.SendPacket(&server.InitInitServerPacket{
+				ReplyCode:     server.InitReply_OutOfDate,
+				ReplyCodeData: &server.InitInitReplyCodeDataOutOfDate{},
+			})
+			p.Close()
+			return nil
+		}
+	}
 
 	// Generate encryption parameters
 	seq1, seq2, seqStart := protocol.GenerateInitSequenceBytes()
 	p.Bus.Sequencer.SetStart(seqStart)
-	// The client consumes the first sequence slot during init, so advance the server's counter to match
-	p.Bus.Sequencer.NextSequence()
+	p.Bus.Sequencer.NextSequence() // client consumes sequence slot 0 during init
 
 	challengeResponse := encrypt.ServerVerificationHash(pkt.Challenge)
 
@@ -50,6 +90,7 @@ func handleInitInit(p *player.Player, reader *player.EoReader) error {
 		},
 	}
 
+	// INIT reply is automatically sent unencrypted (validForEncryption skips 0xFF 0xFF packets)
 	if err := p.Bus.SendPacket(reply); err != nil {
 		slog.Error("failed to send init reply", "id", p.ID, "err", err)
 		p.Close()
@@ -63,4 +104,27 @@ func handleInitInit(p *player.Player, reader *player.EoReader) error {
 	)
 
 	return nil
+}
+
+// compareVersions compares two semver strings ("major.minor.patch").
+// Returns -1, 0, or 1.
+func compareVersions(a, b string) int {
+	pa := strings.Split(a, ".")
+	pb := strings.Split(b, ".")
+	for i := 0; i < 3; i++ {
+		va, vb := 0, 0
+		if i < len(pa) {
+			va, _ = strconv.Atoi(pa[i])
+		}
+		if i < len(pb) {
+			vb, _ = strconv.Atoi(pb[i])
+		}
+		if va < vb {
+			return -1
+		}
+		if va > vb {
+			return 1
+		}
+	}
+	return 0
 }

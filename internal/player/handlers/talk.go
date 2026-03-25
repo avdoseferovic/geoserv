@@ -16,6 +16,8 @@ func init() {
 	player.Register(eonet.PacketFamily_Talk, eonet.PacketAction_Tell, handleTalkPrivate)
 	player.Register(eonet.PacketFamily_Talk, eonet.PacketAction_Admin, handleTalkAdmin)
 	player.Register(eonet.PacketFamily_Talk, eonet.PacketAction_Announce, handleTalkAnnounce)
+	player.Register(eonet.PacketFamily_Talk, eonet.PacketAction_Open, handleTalkParty)
+	player.Register(eonet.PacketFamily_Talk, eonet.PacketAction_Use, handleTalkGuild)
 }
 
 // handleTalkLocal — local chat visible to same map
@@ -27,6 +29,11 @@ func handleTalkLocal(p *player.Player, reader *player.EoReader) error {
 	var pkt client.TalkReportClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		slog.Error("failed to deserialize talk report", "id", p.ID, "err", err)
+		return nil
+	}
+
+	// Check for admin commands
+	if handleCommand(p, pkt.Message) {
 		return nil
 	}
 
@@ -96,9 +103,11 @@ func handleTalkAdmin(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Check admin level, broadcast only to admins
-	// For now, broadcast globally
-	p.World.BroadcastGlobal(p.ID, &server.TalkAdminServerPacket{
+	// Admin chat requires admin level >= 1
+	if p.CharAdmin < 1 {
+		return nil
+	}
+	p.World.BroadcastToAdmins(p.ID, 1, &server.TalkAdminServerPacket{
 		PlayerName: p.CharName,
 		Message:    pkt.Message,
 	})
@@ -117,8 +126,53 @@ func handleTalkAnnounce(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Check admin level
-	p.World.BroadcastGlobal(-1, &server.TalkAnnounceServerPacket{
+	// Announcements require admin level >= 2
+	if p.CharAdmin < 2 {
+		return nil
+	}
+	p.World.BroadcastGlobal(p.ID, &server.TalkAnnounceServerPacket{
+		PlayerName: p.CharName,
+		Message:    pkt.Message,
+	})
+	return nil
+}
+
+// handleTalkParty — party chat
+func handleTalkParty(p *player.Player, reader *player.EoReader) error {
+	if p.State != player.StateInGame || p.World == nil {
+		return nil
+	}
+
+	var pkt client.TalkOpenClientPacket
+	if err := pkt.Deserialize(reader); err != nil {
+		slog.Error("failed to deserialize talk open", "id", p.ID, "err", err)
+		return nil
+	}
+
+	p.World.BroadcastToParty(p.ID, &server.TalkOpenServerPacket{
+		PlayerId: p.ID,
+		Message:  pkt.Message,
+	})
+	return nil
+}
+
+// handleTalkGuild — guild chat
+func handleTalkGuild(p *player.Player, reader *player.EoReader) error {
+	if p.State != player.StateInGame || p.World == nil {
+		return nil
+	}
+
+	var pkt client.TalkUseClientPacket
+	if err := pkt.Deserialize(reader); err != nil {
+		slog.Error("failed to deserialize talk use", "id", p.ID, "err", err)
+		return nil
+	}
+
+	if p.GuildTag == "" {
+		return nil
+	}
+
+	p.World.BroadcastToGuild(p.ID, p.GuildTag, &server.TalkRequestServerPacket{
 		PlayerName: p.CharName,
 		Message:    pkt.Message,
 	})

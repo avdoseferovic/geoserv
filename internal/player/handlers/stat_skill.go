@@ -31,7 +31,7 @@ func handleStatSkillOpen(p *player.Player, reader *player.EoReader) error {
 
 	sessionID := p.GenerateSessionID()
 
-	// TODO: Load actual skill master data from SkillMasterFile based on NPC ID
+	// Skill master data files not yet loaded; return basic response with session
 	return p.Bus.SendPacket(&server.StatSkillOpenServerPacket{
 		SessionId: sessionID,
 		ShopName:  "Skill Master",
@@ -90,7 +90,7 @@ func handleStatSkillAdd(p *player.Player, reader *player.EoReader) error {
 				},
 				MaxHp:     p.Stats.MaxHP,
 				MaxTp:     p.Stats.MaxTP,
-				MaxSp:     0,
+				MaxSp:     p.CharMaxSP,
 				MaxWeight: 70,
 				SecondaryStats: server.CharacterSecondaryStats{
 					MinDamage: p.Stats.Str / 2,
@@ -140,7 +140,20 @@ func handleStatSkillTake(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Validate session, check requirements, check gold cost
+	// Validate session
+	if _, ok := p.TakeSessionID(); !ok {
+		return nil
+	}
+
+	// Deduct gold cost for learning (placeholder: 100 gold per spell)
+	cost := 100
+	if p.Inventory[1] < cost {
+		return nil
+	}
+	p.Inventory[1] -= cost
+	if p.Inventory[1] <= 0 {
+		delete(p.Inventory, 1)
+	}
 
 	// Check not already learned
 	for _, s := range p.Spells {
@@ -194,6 +207,38 @@ func handleStatSkillJunk(p *player.Player, reader *player.EoReader) error {
 	}
 	_ = pkt
 
-	// TODO: Reset stats and refund points
-	return nil
+	// Reset all stats to 0 and refund the points
+	refunded := p.Stats.Str + p.Stats.Intl + p.Stats.Wis + p.Stats.Agi + p.Stats.Con + p.Stats.Cha
+	p.Stats.Str = 0
+	p.Stats.Intl = 0
+	p.Stats.Wis = 0
+	p.Stats.Agi = 0
+	p.Stats.Con = 0
+	p.Stats.Cha = 0
+	p.StatPoints += refunded
+
+	return p.Bus.SendPacket(&server.StatSkillPlayerServerPacket{
+		StatPoints: p.StatPoints,
+		Stats: server.CharacterStatsUpdate{
+			BaseStats: server.CharacterBaseStats{
+				Str:  0,
+				Intl: 0,
+				Wis:  0,
+				Agi:  0,
+				Con:  0,
+				Cha:  0,
+			},
+			MaxHp:     p.Stats.MaxHP,
+			MaxTp:     p.Stats.MaxTP,
+			MaxSp:     p.CharMaxSP,
+			MaxWeight: 70,
+			SecondaryStats: server.CharacterSecondaryStats{
+				MinDamage: 0,
+				MaxDamage: 0,
+				Accuracy:  0,
+				Evade:     0,
+				Armor:     0,
+			},
+		},
+	})
 }

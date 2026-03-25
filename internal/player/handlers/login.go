@@ -30,7 +30,13 @@ func handleLoginRequest(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Check player count vs max_players (needs world integration)
+	// Check player count vs max_players
+	if p.World != nil && p.Cfg.Server.MaxPlayers > 0 && p.World.OnlinePlayerCount() >= p.Cfg.Server.MaxPlayers {
+		return p.Bus.SendPacket(&server.LoginReplyServerPacket{
+			ReplyCode:     server.LoginReply_Busy,
+			ReplyCodeData: &server.LoginReplyReplyCodeDataBusy{},
+		})
+	}
 
 	p.LoginAttempts++
 
@@ -97,7 +103,13 @@ func handleLoginRequest(p *player.Player, reader *player.EoReader) error {
 		})
 	}
 
-	// TODO: Check if already logged in (needs world integration)
+	// Check if already logged in
+	if p.World != nil && p.World.IsLoggedIn(accountID) {
+		return p.Bus.SendPacket(&server.LoginReplyServerPacket{
+			ReplyCode:     server.LoginReply_LoggedIn,
+			ReplyCodeData: &server.LoginReplyReplyCodeDataLoggedIn{},
+		})
+	}
 
 	// Get character list
 	characters, err := account.GetCharacterList(p.DB, accountID)
@@ -110,6 +122,9 @@ func handleLoginRequest(p *player.Player, reader *player.EoReader) error {
 	p.AccountID = accountID
 	p.State = player.StateLoggedIn
 	p.LoginAttempts = 0
+	if p.World != nil {
+		p.World.AddLoggedInAccount(accountID)
+	}
 
 	slog.Info("player logged in", "id", p.ID, "account", username)
 

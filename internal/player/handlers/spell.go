@@ -41,7 +41,18 @@ func handleSpellRequest(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Check TP cost, cooldown
+	// Check TP cost (spell level * 5)
+	spellLevel := 1
+	for _, s := range p.Spells {
+		if s.ID == pkt.SpellId {
+			spellLevel = s.Level
+			break
+		}
+	}
+	tpCost := spellLevel * 5
+	if p.CharTP < tpCost {
+		return nil
+	}
 
 	// Send cast begin confirmation
 	return p.Bus.SendPacket(&server.SpellRequestServerPacket{
@@ -62,18 +73,39 @@ func handleSpellTargetSelf(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Look up spell effect from ESF, consume TP
-	// Simplified: heal 20 HP
-	healAmount := 20
+	// Look up spell level and consume TP
+	spellLevel := 1
+	for _, s := range p.Spells {
+		if s.ID == pkt.SpellId {
+			spellLevel = s.Level
+			break
+		}
+	}
+	tpCost := spellLevel * 5
+	if p.CharTP < tpCost {
+		return nil
+	}
+	p.CharTP -= tpCost
 
-	// Broadcast spell animation + heal to map
-	hp := healAmount // simplified
-	tp := 0
+	// Heal based on spell level (10 HP per level)
+	healAmount := spellLevel * 10
+	p.CharHP += healAmount
+	if p.CharHP > p.CharMaxHP {
+		p.CharHP = p.CharMaxHP
+	}
+
+	hpPct := 100
+	if p.CharMaxHP > 0 {
+		hpPct = p.CharHP * 100 / p.CharMaxHP
+	}
+
+	hp := p.CharHP
+	tp := p.CharTP
 	p.World.BroadcastMap(p.MapID, -1, &server.SpellTargetSelfServerPacket{
 		PlayerId:     p.ID,
 		SpellId:      pkt.SpellId,
 		SpellHealHp:  healAmount,
-		HpPercentage: 100,
+		HpPercentage: hpPct,
 		Hp:           &hp,
 		Tp:           &tp,
 	})
@@ -93,7 +125,22 @@ func handleSpellTargetOther(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Determine if target is NPC or player, apply damage/heal, consume TP
+	// Look up spell level and consume TP
+	spellLevel := 1
+	for _, s := range p.Spells {
+		if s.ID == pkt.SpellId {
+			spellLevel = s.Level
+			break
+		}
+	}
+	tpCost := spellLevel * 5
+	if p.CharTP < tpCost {
+		return nil
+	}
+	p.CharTP -= tpCost
+
+	// Apply spell effect (heal 10 HP per level on target)
+	spellHealHp := spellLevel * 10
 
 	// Broadcast spell animation
 	p.World.BroadcastMap(p.MapID, -1, &server.SpellTargetOtherServerPacket{
@@ -101,7 +148,7 @@ func handleSpellTargetOther(p *player.Player, reader *player.EoReader) error {
 		CasterId:        p.ID,
 		CasterDirection: eoproto.Direction(p.CharDirection),
 		SpellId:         pkt.SpellId,
-		SpellHealHp:     0,
+		SpellHealHp:     spellHealHp,
 		HpPercentage:    100,
 	})
 
@@ -120,13 +167,28 @@ func handleSpellTargetGroup(p *player.Player, reader *player.EoReader) error {
 		return nil
 	}
 
-	// TODO: Apply group heal to party members, consume TP
+	// Look up spell level and consume TP
+	spellLevel := 1
+	for _, s := range p.Spells {
+		if s.ID == pkt.SpellId {
+			spellLevel = s.Level
+			break
+		}
+	}
+	tpCost := spellLevel * 5
+	if p.CharTP < tpCost {
+		return nil
+	}
+	p.CharTP -= tpCost
+
+	// Group heal: 8 HP per level
+	spellHealHp := spellLevel * 8
 
 	p.World.BroadcastMap(p.MapID, -1, &server.SpellTargetGroupServerPacket{
 		SpellId:     pkt.SpellId,
 		CasterId:    p.ID,
-		CasterTp:    0,
-		SpellHealHp: 0,
+		CasterTp:    p.CharTP,
+		SpellHealHp: spellHealHp,
 	})
 
 	return nil
