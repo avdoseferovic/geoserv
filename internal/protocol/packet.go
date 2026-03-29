@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -151,7 +152,9 @@ func (pb *PacketBus) Send(action eonet.PacketAction, family eonet.PacketFamily, 
 		copy(buf[2:], encrypted)
 	}
 
-	slog.Debug("packet send", "action", int(action), "family", int(family), "len", len(buf), "raw", fmt.Sprintf("%x", buf))
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		slog.Debug("packet send", "action", int(action), "family", int(family), "len", len(buf), "raw", fmt.Sprintf("%x", buf))
+	}
 	err := pb.conn.WritePacket(buf)
 
 	*bufp = buf
@@ -187,7 +190,9 @@ func (pb *PacketBus) Recv() (eonet.PacketAction, eonet.PacketFamily, *data.EoRea
 		copy(packetBuf, decrypted)
 	}
 
-	slog.Debug("packet recv", "len", len(packetBuf), "raw", fmt.Sprintf("%x", packetBuf))
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		slog.Debug("packet recv", "len", len(packetBuf), "raw", fmt.Sprintf("%x", packetBuf))
+	}
 
 	action := eonet.PacketAction(packetBuf[0])
 	family := eonet.PacketFamily(packetBuf[1])

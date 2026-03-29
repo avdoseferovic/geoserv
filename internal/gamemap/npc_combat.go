@@ -163,55 +163,6 @@ func (m *GameMap) npcSpeedForType(spawnType int) int {
 	}
 }
 
-func (m *GameMap) broadcastNpcWalk(npc *NpcState) {
-	for _, ch := range m.players {
-		_ = ch.Bus.SendPacket(newNpcPlayerPacket(ch, []server.NpcUpdatePosition{{
-			NpcIndex:  npc.Index,
-			Coords:    eoproto.Coords{X: npc.X, Y: npc.Y},
-			Direction: eoproto.Direction(npc.Direction),
-		}}, nil, nil))
-	}
-}
-
-func (m *GameMap) broadcastNpcAppear(npc *NpcState) {
-	// Send via NPC_PLAYER with position update
-	for _, ch := range m.players {
-		_ = ch.Bus.SendPacket(newNpcPlayerPacket(ch, []server.NpcUpdatePosition{{
-			NpcIndex:  npc.Index,
-			Coords:    eoproto.Coords{X: npc.X, Y: npc.Y},
-			Direction: eoproto.Direction(npc.Direction),
-		}}, nil, nil))
-	}
-}
-
-func (m *GameMap) broadcastNpcAttack(attack server.NpcUpdateAttack) {
-	for _, ch := range m.players {
-		_ = ch.Bus.SendPacket(newNpcPlayerPacket(ch, nil, []server.NpcUpdateAttack{attack}, nil))
-	}
-}
-
-func newNpcPlayerPacket(
-	player *MapCharacter,
-	positions []server.NpcUpdatePosition,
-	attacks []server.NpcUpdateAttack,
-	chats []server.NpcUpdateChat,
-) *server.NpcPlayerServerPacket {
-	pkt := &server.NpcPlayerServerPacket{
-		Positions: positions,
-		Attacks:   attacks,
-		Chats:     chats,
-	}
-
-	if !npcAttackTargetsPlayer(attacks, player.PlayerID) {
-		return pkt
-	}
-
-	hp, tp := player.HP, player.TP
-	pkt.Hp = &hp
-	pkt.Tp = &tp
-	return pkt
-}
-
 func npcAttackTargetsPlayer(attacks []server.NpcUpdateAttack, playerID int) bool {
 	for _, attack := range attacks {
 		if attack.PlayerId == playerID {

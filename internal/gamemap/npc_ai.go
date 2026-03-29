@@ -4,7 +4,8 @@ import (
 	"math/rand/v2"
 )
 
-func (m *GameMap) npcActAgainstOpponent(npc *NpcState) {
+// npcActCollect processes an NPC's action and appends updates to the batch.
+func (m *GameMap) npcActCollect(npc *NpcState, batch *npcTickBatch) {
 	target, bestDist := m.npcClosestOpponentLocked(npc)
 	if target == nil {
 		return
@@ -18,16 +19,17 @@ func (m *GameMap) npcActAgainstOpponent(npc *NpcState) {
 	if bestDist <= 1 && npcIsOrthogonallyAdjacent(npc.X, npc.Y, target.X, target.Y) {
 		attack, ok := m.npcAttackLocked(npc, target)
 		if ok {
-			m.broadcastNpcAttack(attack)
+			batch.attacks = append(batch.attacks, attack)
 		}
 		return
 	}
 
-	m.npcChase(npc)
+	m.npcChaseCollect(npc, batch)
 }
 
-// npcChase moves an NPC toward its closest opponent within chase distance.
-func (m *GameMap) npcChase(npc *NpcState) {
+// npcChaseCollect moves an NPC toward its closest opponent and appends the
+// position update to the batch.
+func (m *GameMap) npcChaseCollect(npc *NpcState, batch *npcTickBatch) {
 	target, _ := m.npcClosestOpponentLocked(npc)
 	if target == nil {
 		return
@@ -40,7 +42,7 @@ func (m *GameMap) npcChase(npc *NpcState) {
 	npc.X = newX
 	npc.Y = newY
 	npc.Direction = dir
-	m.broadcastNpcWalk(npc)
+	batch.positions = append(batch.positions, npcPositionUpdate(npc))
 }
 
 func (m *GameMap) npcNextChaseStepLocked(npc *NpcState, target *MapCharacter) (int, int, int, bool) {

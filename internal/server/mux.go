@@ -13,7 +13,6 @@ type protocolMux struct {
 	root net.Listener
 	http *chanListener
 	tcp  *chanListener
-	once sync.Once
 }
 
 func newProtocolMux(l net.Listener) *protocolMux {
