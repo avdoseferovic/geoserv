@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"github.com/avdo/goeoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

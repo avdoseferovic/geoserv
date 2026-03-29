@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/deep"
-	"github.com/avdo/goeoserv/internal/player"
-	"github.com/avdo/goeoserv/internal/player/handlers/account"
+	"github.com/avdoseferovic/geoserv/internal/deep"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/player/handlers/account"
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"

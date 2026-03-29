@@ -43,9 +43,9 @@ database:
   driver: "sqlite"
   host: "127.0.0.1"
   port: "3306"
-  name: "goeoserv"
-  username: "goeoserv"
-  password: "goeoserv"
+  name: "geoserv"
+  username: "geoserv"
+  password: "geoserv"
 
 sln:
   enabled: false

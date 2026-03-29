@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/player"
-	"github.com/avdo/goeoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/encrypt"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"

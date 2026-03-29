@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/gamemap"
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/player"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

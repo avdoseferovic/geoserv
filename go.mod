@@ -1,4 +1,4 @@
-module github.com/avdo/goeoserv
+module github.com/avdoseferovic/geoserv
 
 go 1.25.0
 

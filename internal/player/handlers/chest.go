@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 
-	"github.com/avdo/goeoserv/internal/gamemap"
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/player"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"

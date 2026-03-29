@@ -1,7 +1,7 @@
 package player
 
 import (
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eopub "github.com/ethanmoffat/eolib-go/v3/protocol/pub"
 )
 

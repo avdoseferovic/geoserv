@@ -3,8 +3,8 @@ package gamemap
 import (
 	"testing"
 
-	"github.com/avdo/goeoserv/internal/config"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/config"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	eopub "github.com/ethanmoffat/eolib-go/v3/protocol/pub"
 )

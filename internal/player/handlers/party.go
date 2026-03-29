@@ -4,9 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/avdo/goeoserv/internal/player"
-	"github.com/avdo/goeoserv/internal/protocol"
-	worldpkg "github.com/avdo/goeoserv/internal/world"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
+	worldpkg "github.com/avdoseferovic/geoserv/internal/world"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"

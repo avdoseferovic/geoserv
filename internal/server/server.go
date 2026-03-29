@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
-	"github.com/avdo/goeoserv/internal/db"
-	"github.com/avdo/goeoserv/internal/player"
-	"github.com/avdo/goeoserv/internal/protocol"
-	"github.com/avdo/goeoserv/internal/world"
+	"github.com/avdoseferovic/geoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/db"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/world"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 	"github.com/gorilla/websocket"
 )

@@ -1,16 +1,16 @@
 .PHONY: build run test docker-build clean
 
 build:
-	go build -o bin/goeoserv ./cmd/goeoserv
+	go build -o bin/geoserv ./cmd/geoserv
 
 run: build
-	./bin/goeoserv
+	./bin/geoserv
 
 test:
 	go test ./...
 
 docker-build:
-	docker build -t goeoserv:local .
+	docker build -t geoserv:local .
 
 clean:
 	rm -rf bin/

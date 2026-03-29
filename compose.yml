@@ -1,5 +1,5 @@
 services:
-  goeoserv:
+  geoserv:
     build:
       context: .
     ports:

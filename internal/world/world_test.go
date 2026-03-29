@@ -3,9 +3,9 @@ package world
 import (
 	"testing"
 
-	"github.com/avdo/goeoserv/internal/gamemap"
-	"github.com/avdo/goeoserv/internal/player"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	eopub "github.com/ethanmoffat/eolib-go/v3/protocol/pub"
 )

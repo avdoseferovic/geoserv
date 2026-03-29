@@ -6,9 +6,9 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/player"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
-	worldpkg "github.com/avdo/goeoserv/internal/world"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
+	worldpkg "github.com/avdoseferovic/geoserv/internal/world"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"

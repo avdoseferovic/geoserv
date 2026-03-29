@@ -1,7 +1,7 @@
 package world
 
 import (
-	"github.com/avdo/goeoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

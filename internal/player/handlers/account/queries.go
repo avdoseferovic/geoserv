@@ -9,8 +9,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/db"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/db"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

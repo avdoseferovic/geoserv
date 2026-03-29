@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/player"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 )
 
 // $info / $loc — show current position (no admin required)

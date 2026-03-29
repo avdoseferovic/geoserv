@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "modernc.org/sqlite"

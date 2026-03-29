@@ -10,9 +10,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/avdo/goeoserv/internal/gamemap"
-	"github.com/avdo/goeoserv/internal/player"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
@@ -413,7 +413,7 @@ func handleWelcomeMsg(ctx context.Context, p *player.Player, reader *player.EoRe
 	return p.Bus.SendPacket(&server.WelcomeReplyServerPacket{
 		WelcomeCode: server.WelcomeCode_EnterGame,
 		WelcomeCodeData: &server.WelcomeReplyWelcomeCodeDataEnterGame{
-			News:   []string{"Welcome to goeoserv!", "", "", "", "", "", "", "", ""},
+			News:   []string{"Welcome to geoserv!", "", "", "", "", "", "", "", ""},
 			Weight: eonet.Weight{Current: p.Weight, Max: p.MaxWeight},
 			Items:  items,
 			Spells: spells,

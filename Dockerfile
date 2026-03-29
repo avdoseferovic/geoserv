@@ -6,22 +6,22 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/goeoserv ./cmd/goeoserv
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/geoserv ./cmd/geoserv
 
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-RUN useradd --create-home --shell /usr/sbin/nologin goeoserv
+RUN useradd --create-home --shell /usr/sbin/nologin geoserv
 
-COPY --from=build /out/goeoserv ./goeoserv
+COPY --from=build /out/geoserv ./geoserv
 COPY config ./config
 COPY sql ./sql
 
-RUN mkdir -p /app/data && chown -R goeoserv:goeoserv /app
+RUN mkdir -p /app/data && chown -R geoserv:geoserv /app
 
-USER goeoserv
+USER geoserv
 
 EXPOSE 8078 8079
 
-CMD ["./goeoserv"]
+CMD ["./geoserv"]

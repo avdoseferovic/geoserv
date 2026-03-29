@@ -3,7 +3,7 @@ package player
 import (
 	"testing"
 
-	"github.com/avdo/goeoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/config"
 )
 
 // testCfg returns a minimal config for tests.

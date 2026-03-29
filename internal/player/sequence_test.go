@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 )

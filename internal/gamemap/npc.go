@@ -3,7 +3,7 @@ package gamemap
 import (
 	"math/rand/v2"
 
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 	eopub "github.com/ethanmoffat/eolib-go/v3/protocol/pub"

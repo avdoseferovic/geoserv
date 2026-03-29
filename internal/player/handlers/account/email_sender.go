@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/config"
 )
 
 var ErrEmailTransportUnavailable = errors.New("email transport unavailable")

@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 
-	"github.com/avdo/goeoserv/internal/deep"
-	"github.com/avdo/goeoserv/internal/formula"
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/deep"
+	"github.com/avdoseferovic/geoserv/internal/formula"
+	"github.com/avdoseferovic/geoserv/internal/player"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

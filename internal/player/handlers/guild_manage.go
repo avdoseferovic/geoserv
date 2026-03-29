@@ -2,12 +2,10 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/config"
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/player/handlers/guild"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -23,14 +21,14 @@ func handleGuildKick(ctx context.Context, p *player.Player, reader *player.EoRea
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil {
 		return nil
 	}
 	if info.Rank > 2 {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_NotRecruiter})
 	}
-	member, err := loadGuildMemberByName(ctx, p, strings.ToLower(pkt.MemberName))
+	member, err := guild.LoadMemberByName(ctx, p.DB, strings.ToLower(pkt.MemberName))
 	if err != nil || member.GuildID != info.ID {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RemoveNotMember})
 	}
@@ -60,7 +58,7 @@ func handleGuildRank(ctx context.Context, p *player.Player, reader *player.EoRea
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil {
 		return nil
 	}
@@ -70,15 +68,15 @@ func handleGuildRank(ctx context.Context, p *player.Player, reader *player.EoRea
 	if pkt.Rank < 1 || pkt.Rank > 9 {
 		return nil
 	}
-	member, err := loadGuildMemberByName(ctx, p, strings.ToLower(pkt.MemberName))
+	member, err := guild.LoadMemberByName(ctx, p.DB, strings.ToLower(pkt.MemberName))
 	if err != nil || member.GuildID != info.ID {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RankingNotMember})
 	}
 	if member.Rank == 1 {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RankingLeader})
 	}
-	ranks, _ := loadGuildRanks(ctx, p, info.ID)
-	norm := normalizeRanks(ranks)
+	ranks, _ := guild.LoadRanks(ctx, p.DB, info.ID)
+	norm := guild.NormalizeRanks(ranks)
 	idx := pkt.Rank - 1
 	if idx < 0 || idx >= len(norm) {
 		return nil
@@ -103,7 +101,7 @@ func handleGuildRemove(ctx context.Context, p *player.Player, reader *player.EoR
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RemoveNotMember})
 	}
@@ -128,7 +126,7 @@ func handleGuildJunk(ctx context.Context, p *player.Player, reader *player.EoRea
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil || info.Rank != 1 {
 		return nil
 	}
@@ -156,7 +154,7 @@ func handleGuildAgree(ctx context.Context, p *player.Player, reader *player.EoRe
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil || info.Rank != 1 {
 		return nil
 	}
@@ -179,8 +177,8 @@ func handleGuildAgree(ctx context.Context, p *player.Player, reader *player.EoRe
 		if data == nil {
 			return nil
 		}
-		ranks := normalizeRanks(data.Ranks)
-		if !validateGuildRanks(p.Cfg, ranks) {
+		ranks := guild.NormalizeRanks(data.Ranks)
+		if !guild.ValidateRanks(p.Cfg.Guild.MaxRankLength, ranks) {
 			return nil
 		}
 		if err := p.DB.Execute(ctx, `DELETE FROM guild_ranks WHERE guild_id = ?`, info.ID); err != nil {
@@ -193,142 +191,4 @@ func handleGuildAgree(ctx context.Context, p *player.Player, reader *player.EoRe
 	default:
 		return nil
 	}
-}
-
-// -- shared DB helpers --
-
-type guildInfo struct {
-	ID          int
-	Tag         string
-	Name        string
-	Description string
-	Bank        int
-	CreatedAt   string
-	Rank        int
-}
-
-type guildMemberInfo struct {
-	ID       int
-	GuildID  int
-	GuildTag string
-	Rank     int
-}
-
-func loadOwnGuildInfo(ctx context.Context, p *player.Player) (*guildInfo, error) {
-	var info guildInfo
-	err := p.DB.QueryRow(ctx, `SELECT g.id, g.tag, g.name, COALESCE(g.description,''), g.bank, COALESCE(c.guild_rank, 0)
-		FROM characters c JOIN guilds g ON c.guild_id = g.id WHERE c.id = ?`, *p.CharacterID).Scan(&info.ID, &info.Tag, &info.Name, &info.Description, &info.Bank, &info.Rank)
-	if err != nil {
-		return nil, err
-	}
-	return &info, nil
-}
-
-func loadGuildByTag(ctx context.Context, p *player.Player, tag string) (*guildInfo, []string, error) {
-	var info guildInfo
-	err := p.DB.QueryRow(ctx, `SELECT id, tag, name, COALESCE(description,''), bank, COALESCE(created_at,'') FROM guilds WHERE tag = ?`, strings.TrimSpace(tag)).Scan(&info.ID, &info.Tag, &info.Name, &info.Description, &info.Bank, &info.CreatedAt)
-	if err != nil {
-		return nil, nil, err
-	}
-	ranks, _ := loadGuildRanks(ctx, p, info.ID)
-	return &info, ranks, nil
-}
-
-func loadGuildRanks(ctx context.Context, p *player.Player, guildID int) ([]string, error) {
-	rows, err := p.DB.Query(ctx, `SELECT rank FROM guild_ranks WHERE guild_id = ? ORDER BY index`, guildID)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	var ranks []string
-	for rows.Next() {
-		var rank string
-		if err := rows.Scan(&rank); err == nil {
-			ranks = append(ranks, rank)
-		}
-	}
-	return ranks, nil
-}
-
-func normalizeRanks(ranks []string) []string {
-	base := []string{"Leader", "Recruiter", "Officer", "Veteran", "Member", "Member", "Member", "Member", "New Member"}
-	copy(base, base)
-	for i := 0; i < len(ranks) && i < 9; i++ {
-		if strings.TrimSpace(ranks[i]) != "" {
-			base[i] = ranks[i]
-		}
-	}
-	return base
-}
-
-func loadGuildStaff(ctx context.Context, p *player.Player, guildID int) ([]server.GuildStaff, error) {
-	rows, err := p.DB.Query(ctx, `SELECT COALESCE(guild_rank,0), name FROM characters WHERE guild_id = ? AND COALESCE(guild_rank,0) <= 2 ORDER BY guild_rank, name`, guildID)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	var staff []server.GuildStaff
-	for rows.Next() {
-		var rank int
-		var name string
-		if err := rows.Scan(&rank, &name); err == nil {
-			staff = append(staff, server.GuildStaff{Rank: rank, Name: name})
-		}
-	}
-	return staff, nil
-}
-
-func guildBankWealth(bank int) string {
-	return fmt.Sprintf("%d gold", bank)
-}
-
-func loadGuildMemberByName(ctx context.Context, p *player.Player, name string) (*guildMemberInfo, error) {
-	var info guildMemberInfo
-	err := p.DB.QueryRow(ctx, `SELECT id, COALESCE(guild_id,0), COALESCE(guild_rank,0) FROM characters WHERE LOWER(name) = ?`, strings.ToLower(name)).Scan(&info.ID, &info.GuildID, &info.Rank)
-	if err != nil {
-		return nil, err
-	}
-	return &info, nil
-}
-
-func loadGuildMemberByPlayerID(ctx context.Context, p *player.Player, playerID int) (*guildMemberInfo, error) {
-	name := p.World.GetPlayerName(playerID)
-	if name == "" {
-		return nil, sql.ErrNoRows
-	}
-	var info guildMemberInfo
-	err := p.DB.QueryRow(ctx, `SELECT c.id, COALESCE(c.guild_id,0), COALESCE(c.guild_rank,0), COALESCE(g.tag,'') FROM characters c LEFT JOIN guilds g ON c.guild_id = g.id WHERE LOWER(c.name) = ?`, strings.ToLower(name)).Scan(&info.ID, &info.GuildID, &info.Rank, &info.GuildTag)
-	if err != nil {
-		return nil, err
-	}
-	return &info, nil
-}
-
-func guildExists(ctx context.Context, p *player.Player, tag, name string) (bool, error) {
-	var exists int
-	err := p.DB.QueryRow(ctx, `SELECT 1 FROM guilds WHERE UPPER(tag) = ? OR LOWER(name) = ? LIMIT 1`, strings.ToUpper(strings.TrimSpace(tag)), strings.ToLower(strings.TrimSpace(name))).Scan(&exists)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-func validateGuildRanks(cfg *config.Config, ranks []string) bool {
-	for _, rank := range ranks {
-		if len(strings.TrimSpace(rank)) > cfg.Guild.MaxRankLength {
-			return false
-		}
-	}
-	return true
-}
-
-func mustLoadGuildRanks(ctx context.Context, p *player.Player, guildID int) []string {
-	ranks, err := loadGuildRanks(ctx, p, guildID)
-	if err != nil {
-		return nil
-	}
-	return ranks
 }

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/config"
 )
 
 const version = "0.1.0"

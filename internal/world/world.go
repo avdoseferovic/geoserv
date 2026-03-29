@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
-	"github.com/avdo/goeoserv/internal/db"
-	"github.com/avdo/goeoserv/internal/gamemap"
-	"github.com/avdo/goeoserv/internal/player"
-	"github.com/avdo/goeoserv/internal/protocol"
-	pubdata "github.com/avdo/goeoserv/internal/pub"
+	"github.com/avdoseferovic/geoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/db"
+	"github.com/avdoseferovic/geoserv/internal/gamemap"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 )

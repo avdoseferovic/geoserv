@@ -3,8 +3,8 @@ package world
 import (
 	"fmt"
 
-	"github.com/avdo/goeoserv/internal/config"
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/player"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )

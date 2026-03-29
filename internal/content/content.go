@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/avdo/goeoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/config"
 )
 
 type ShopOffer struct {

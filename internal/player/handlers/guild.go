@@ -5,7 +5,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/player"
+	"github.com/avdoseferovic/geoserv/internal/player/handlers/guild"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/client"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
@@ -33,18 +34,14 @@ func handleGuildRequest(ctx context.Context, p *player.Player, reader *player.Eo
 	if p.State != player.StateInGame {
 		return nil
 	}
-
 	var pkt client.GuildRequestClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		slog.Error("failed to deserialize guild request", "id", p.ID, "err", err)
 		return nil
 	}
-
 	return p.Bus.SendPacket(&server.GuildReplyServerPacket{
-		ReplyCode: server.GuildReply_CreateAdd,
-		ReplyCodeData: &server.GuildReplyReplyCodeDataCreateAdd{
-			Name: pkt.GuildName,
-		},
+		ReplyCode:     server.GuildReply_CreateAdd,
+		ReplyCodeData: &server.GuildReplyReplyCodeDataCreateAdd{Name: pkt.GuildName},
 	})
 }
 
@@ -52,7 +49,6 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 	if p.State != player.StateInGame || p.CharacterID == nil {
 		return nil
 	}
-
 	var pkt client.GuildCreateClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		slog.Error("failed to deserialize guild create", "id", p.ID, "err", err)
@@ -79,7 +75,7 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 		return nil
 	}
 
-	exists, err := guildExists(ctx, p, trimmedTag, trimmedName)
+	exists, err := guild.Exists(ctx, p.DB, trimmedTag, trimmedName)
 	if err != nil || exists {
 		return nil
 	}
@@ -99,13 +95,12 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 	}
 
 	guildID, _ := result.LastInsertId()
-
 	_ = p.DB.Execute(ctx,
-		`UPDATE characters SET guild_id = ?, guild_rank = 1, guild_rank_string = ? WHERE id = ?`, guildID, p.Cfg.Guild.DefaultLeaderRankName, *p.CharacterID)
+		`UPDATE characters SET guild_id = ?, guild_rank = 1, guild_rank_string = ? WHERE id = ?`,
+		guildID, p.Cfg.Guild.DefaultLeaderRankName, *p.CharacterID)
 	p.GuildTag = trimmedTag
 
 	slog.Info("guild created", "tag", trimmedTag, "name", trimmedName, "player", p.ID)
-
 	return p.Bus.SendPacket(&server.GuildCreateServerPacket{
 		LeaderPlayerId: p.ID,
 		GuildTag:       trimmedTag,
@@ -114,29 +109,22 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 	})
 }
 
-func handleGuildOpen(ctx context.Context, p *player.Player, reader *player.EoReader) error {
+func handleGuildOpen(_ context.Context, p *player.Player, reader *player.EoReader) error {
 	if p.State != player.StateInGame {
 		return nil
 	}
-
 	var pkt client.GuildOpenClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		slog.Error("failed to deserialize guild open", "id", p.ID, "err", err)
 		return nil
 	}
-
-	sessionID := p.GenerateSessionID()
-
-	return p.Bus.SendPacket(&server.GuildOpenServerPacket{
-		SessionId: sessionID,
-	})
+	return p.Bus.SendPacket(&server.GuildOpenServerPacket{SessionId: p.GenerateSessionID()})
 }
 
 func handleGuildTake(ctx context.Context, p *player.Player, reader *player.EoReader) error {
 	if p.State != player.StateInGame {
 		return nil
 	}
-
 	var pkt client.GuildTakeClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
@@ -144,19 +132,17 @@ func handleGuildTake(ctx context.Context, p *player.Player, reader *player.EoRea
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-
-	guild, ranks, err := loadGuildByTag(ctx, p, strings.TrimSpace(pkt.GuildTag))
+	g, ranks, err := guild.LoadByTag(ctx, p.DB, strings.TrimSpace(pkt.GuildTag))
 	if err != nil {
 		return nil
 	}
-
 	switch pkt.InfoType {
 	case client.GuildInfo_Description:
-		return p.Bus.SendPacket(&server.GuildTakeServerPacket{Description: guild.Description})
+		return p.Bus.SendPacket(&server.GuildTakeServerPacket{Description: g.Description})
 	case client.GuildInfo_Ranks:
-		return p.Bus.SendPacket(&server.GuildRankServerPacket{Ranks: normalizeRanks(ranks)})
+		return p.Bus.SendPacket(&server.GuildRankServerPacket{Ranks: guild.NormalizeRanks(ranks)})
 	case client.GuildInfo_Bank:
-		return p.Bus.SendPacket(&server.GuildSellServerPacket{GoldAmount: guild.Bank})
+		return p.Bus.SendPacket(&server.GuildSellServerPacket{GoldAmount: g.Bank})
 	default:
 		return nil
 	}
@@ -166,7 +152,6 @@ func handleGuildBuy(ctx context.Context, p *player.Player, reader *player.EoRead
 	if p.State != player.StateInGame || p.CharacterID == nil {
 		return nil
 	}
-
 	var pkt client.GuildBuyClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
@@ -177,15 +162,13 @@ func handleGuildBuy(ctx context.Context, p *player.Player, reader *player.EoRead
 	if pkt.GoldAmount < p.Cfg.Guild.MinDeposit {
 		return nil
 	}
-
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil {
 		return nil
 	}
 	if pkt.GoldAmount <= 0 || !p.RemoveItem(1, pkt.GoldAmount) {
 		return nil
 	}
-
 	if info.Bank+pkt.GoldAmount > p.Cfg.Guild.BankMaxGold {
 		p.AddItem(1, pkt.GoldAmount)
 		return nil
@@ -201,25 +184,22 @@ func handleGuildUse(ctx context.Context, p *player.Player, reader *player.EoRead
 	if p.State != player.StateInGame || p.CharacterID == nil || p.World == nil {
 		return nil
 	}
-
 	var pkt client.GuildUseClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
 	}
-
-	info, err := loadOwnGuildInfo(ctx, p)
+	info, err := guild.LoadOwnInfo(ctx, p.DB, *p.CharacterID)
 	if err != nil || pkt.PlayerId == 0 {
 		return nil
 	}
 	if info.Rank > 2 {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_NotRecruiter})
 	}
-
 	targetName := p.World.GetPlayerName(pkt.PlayerId)
 	if targetName == "" {
 		return nil
 	}
-	targetInfo, err := loadGuildMemberByPlayerID(ctx, p, pkt.PlayerId)
+	targetInfo, err := guild.LoadMemberByCharName(ctx, p.DB, targetName)
 	if err != nil || targetInfo.GuildID != 0 {
 		return nil
 	}
@@ -231,15 +211,12 @@ func handleGuildUse(ctx context.Context, p *player.Player, reader *player.EoRead
 			return nil
 		}
 	}
-	rankName := normalizeRanks(mustLoadGuildRanks(ctx, p, info.ID))[8]
+	rankName := guild.NormalizeRanks(guild.MustLoadRanks(ctx, p.DB, info.ID))[8]
 	if err := p.DB.Execute(ctx, `UPDATE characters SET guild_id = ?, guild_rank = 9, guild_rank_string = ? WHERE LOWER(name) = ?`, info.ID, rankName, strings.ToLower(targetName)); err != nil {
 		return nil
 	}
 	p.World.SendToPlayer(pkt.PlayerId, &server.GuildAgreeServerPacket{
-		RecruiterId: p.ID,
-		GuildTag:    info.Tag,
-		GuildName:   info.Name,
-		RankName:    rankName,
+		RecruiterId: p.ID, GuildTag: info.Tag, GuildName: info.Name, RankName: rankName,
 	})
 	return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_Accepted})
 }
@@ -248,7 +225,6 @@ func handleGuildPlayer(ctx context.Context, p *player.Player, reader *player.EoR
 	if p.State != player.StateInGame || p.CharacterID == nil || p.World == nil {
 		return nil
 	}
-
 	var pkt client.GuildPlayerClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
@@ -263,7 +239,7 @@ func handleGuildPlayer(ctx context.Context, p *player.Player, reader *player.EoR
 	if !found {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RecruiterOffline})
 	}
-	recruiterInfo, err := loadGuildMemberByPlayerID(ctx, p, recruiterID)
+	recruiterInfo, err := guild.LoadMemberByCharName(ctx, p.DB, p.World.GetPlayerName(recruiterID))
 	if err != nil || !strings.EqualFold(recruiterInfo.GuildTag, pkt.GuildTag) {
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RecruiterWrongGuild})
 	}
@@ -277,7 +253,7 @@ func handleGuildPlayer(ctx context.Context, p *player.Player, reader *player.EoR
 	return nil
 }
 
-func handleGuildAccept(ctx context.Context, p *player.Player, reader *player.EoReader) error {
+func handleGuildAccept(_ context.Context, p *player.Player, reader *player.EoReader) error {
 	if p.State != player.StateInGame || p.World == nil {
 		return nil
 	}
@@ -300,19 +276,14 @@ func handleGuildReport(ctx context.Context, p *player.Player, reader *player.EoR
 	if !p.ValidateSessionID(pkt.SessionId) {
 		return nil
 	}
-	guild, ranks, err := loadGuildByTag(ctx, p, strings.TrimSpace(pkt.GuildIdentity))
+	g, ranks, err := guild.LoadByTag(ctx, p.DB, strings.TrimSpace(pkt.GuildIdentity))
 	if err != nil {
 		return nil
 	}
-	staff, _ := loadGuildStaff(ctx, p, guild.ID)
+	staff, _ := guild.LoadStaff(ctx, p.DB, g.ID)
 	return p.Bus.SendPacket(&server.GuildReportServerPacket{
-		Name:        guild.Name,
-		Tag:         guild.Tag,
-		CreateDate:  guild.CreatedAt,
-		Description: guild.Description,
-		Wealth:      guildBankWealth(guild.Bank),
-		Ranks:       normalizeRanks(ranks),
-		Staff:       staff,
+		Name: g.Name, Tag: g.Tag, CreateDate: g.CreatedAt, Description: g.Description,
+		Wealth: guild.BankWealth(g.Bank), Ranks: guild.NormalizeRanks(ranks), Staff: staff,
 	})
 }
 
@@ -320,7 +291,6 @@ func handleGuildTell(ctx context.Context, p *player.Player, reader *player.EoRea
 	if p.State != player.StateInGame {
 		return nil
 	}
-
 	var pkt client.GuildTellClientPacket
 	if err := pkt.Deserialize(reader); err != nil {
 		return nil
@@ -330,39 +300,22 @@ func handleGuildTell(ctx context.Context, p *player.Player, reader *player.EoRea
 	}
 	rows, err := p.DB.Query(ctx,
 		`SELECT c.name, COALESCE(c.guild_rank, 9), COALESCE(c.guild_rank_string, '')
-		 FROM characters c
-		 JOIN guilds g ON c.guild_id = g.id
-		 WHERE g.tag = ?
-		 ORDER BY COALESCE(c.guild_rank, 9), c.name`,
+		 FROM characters c JOIN guilds g ON c.guild_id = g.id
+		 WHERE g.tag = ? ORDER BY COALESCE(c.guild_rank, 9), c.name`,
 		strings.TrimSpace(pkt.GuildIdentity))
 	if err != nil {
 		slog.Error("error querying guild members", "id", p.ID, "err", err)
-		return p.Bus.SendPacket(&server.GuildTellServerPacket{
-			Members: []server.GuildMember{},
-		})
+		return p.Bus.SendPacket(&server.GuildTellServerPacket{Members: []server.GuildMember{}})
 	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			slog.Warn("failed to close rows", "err", err)
-		}
-	}()
+	defer func() { _ = rows.Close() }()
 
 	var members []server.GuildMember
 	for rows.Next() {
-		var name string
+		var name, rankName string
 		var rank int
-		var rankName string
-		if err := rows.Scan(&name, &rank, &rankName); err != nil {
-			continue
+		if err := rows.Scan(&name, &rank, &rankName); err == nil {
+			members = append(members, server.GuildMember{Rank: rank, Name: name, RankName: rankName})
 		}
-		members = append(members, server.GuildMember{
-			Rank:     rank,
-			Name:     name,
-			RankName: rankName,
-		})
 	}
-
-	return p.Bus.SendPacket(&server.GuildTellServerPacket{
-		Members: members,
-	})
+	return p.Bus.SendPacket(&server.GuildTellServerPacket{Members: members})
 }

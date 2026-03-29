@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/avdo/goeoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/data"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"

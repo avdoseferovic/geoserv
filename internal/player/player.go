@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/avdo/goeoserv/internal/config"
-	"github.com/avdo/goeoserv/internal/db"
-	"github.com/avdo/goeoserv/internal/protocol"
+	"github.com/avdoseferovic/geoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/db"
+	"github.com/avdoseferovic/geoserv/internal/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
