@@ -15,10 +15,6 @@ func init() {
 	player.Register(eonet.PacketFamily_Jukebox, eonet.PacketAction_Open, handleJukeboxOpen)
 	player.Register(eonet.PacketFamily_Jukebox, eonet.PacketAction_Msg, handleJukeboxMsg)
 
-	// AdminInteract
-	player.Register(eonet.PacketFamily_AdminInteract, eonet.PacketAction_Tell, handleAdminInteractTell)
-	player.Register(eonet.PacketFamily_AdminInteract, eonet.PacketAction_Report, handleAdminInteractReport)
-
 	// Book (character info)
 	player.Register(eonet.PacketFamily_Book, eonet.PacketAction_Request, handleBookRequest)
 

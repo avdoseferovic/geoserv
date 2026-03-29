@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/avdo/goeoserv/internal/gamemap"
 	"github.com/avdo/goeoserv/internal/player"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
@@ -27,8 +28,20 @@ func handleSitRequest(ctx context.Context, p *player.Player, reader *player.EoRe
 		return nil
 	}
 
-	// Toggle sit/stand (SitState: 0 = standing, 2 = floor)
+	// Get current sit state from map (0 = standing, 2 = floor)
+	currentSitState := 0
+	if pos := p.World.GetPlayerPosition(p.ID); pos != nil {
+		if mc, ok := pos.(*gamemap.MapCharacter); ok {
+			currentSitState = mc.SitState
+		}
+	}
+
+	// Toggle sit/stand
 	newSitState := 2 // sitting on floor
+	if currentSitState == 2 {
+		newSitState = 0 // stand up
+	}
+
 	p.World.UpdatePlayerSitState(p.MapID, p.ID, newSitState)
 
 	p.World.BroadcastMap(p.MapID, p.ID, &server.SitPlayerServerPacket{
@@ -50,17 +63,35 @@ func handleChairRequest(ctx context.Context, p *player.Player, reader *player.Eo
 		slog.Error("failed to deserialize chair request", "id", p.ID, "err", err)
 		return nil
 	}
-	_ = pkt
 
-	// Sit on chair (SitState: 0 = standing, 1 = chair)
-	newSitState := 1 // sitting on chair
-	p.World.UpdatePlayerSitState(p.MapID, p.ID, newSitState)
+	// Handle sit/stand action from packet
+	// SitState: 0 = standing, 1 = chair, 2 = floor
+	switch pkt.SitAction {
+	case client.SitAction_Sit: // Sit
+		// Use coordinates from packet if available, otherwise use player position
+		x, y := p.CharX, p.CharY
+		if sitData, ok := pkt.SitActionData.(*client.ChairRequestSitActionDataSit); ok {
+			x = int(sitData.Coords.X)
+			y = int(sitData.Coords.Y)
+		}
 
-	p.World.BroadcastMap(p.MapID, p.ID, &server.SitPlayerServerPacket{
-		PlayerId:  p.ID,
-		Coords:    eoproto.Coords{X: p.CharX, Y: p.CharY},
-		Direction: eoproto.Direction(p.CharDirection),
-	})
+		p.World.UpdatePlayerSitState(p.MapID, p.ID, 1) // 1 = sitting on chair
+
+		p.World.BroadcastMap(p.MapID, p.ID, &server.SitPlayerServerPacket{
+			PlayerId:  p.ID,
+			Coords:    eoproto.Coords{X: x, Y: y},
+			Direction: eoproto.Direction(p.CharDirection),
+		})
+
+	case client.SitAction_Stand: // Stand
+		p.World.UpdatePlayerSitState(p.MapID, p.ID, 0) // 0 = standing
+
+		p.World.BroadcastMap(p.MapID, p.ID, &server.SitPlayerServerPacket{
+			PlayerId:  p.ID,
+			Coords:    eoproto.Coords{X: p.CharX, Y: p.CharY},
+			Direction: eoproto.Direction(p.CharDirection),
+		})
+	}
 
 	return nil
 }

@@ -199,8 +199,6 @@ func handlePriestUse(ctx context.Context, p *player.Player, reader *player.EoRea
 	}
 	world.EndWedding(p.MapID)
 	_ = p.Bus.SendPacket(&server.MarriageReplyServerPacket{ReplyCode: server.MarriageReply_Success, ReplyCodeData: &server.MarriageReplyReplyCodeDataSuccess{GoldAmount: p.Inventory[1]}})
-	if partnerBus != nil {
-		_ = partnerBus.SendPacket(&server.MarriageReplyServerPacket{ReplyCode: server.MarriageReply_Success, ReplyCodeData: &server.MarriageReplyReplyCodeDataSuccess{GoldAmount: 0}})
-	}
+	_ = partnerBus.SendPacket(&server.MarriageReplyServerPacket{ReplyCode: server.MarriageReply_Success, ReplyCodeData: &server.MarriageReplyReplyCodeDataSuccess{GoldAmount: 0}})
 	return nil
 }

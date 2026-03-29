@@ -23,12 +23,17 @@ type Server struct {
 	db       *db.Database
 	world    *world.World
 	listener net.Listener
+	mux      *protocolMux
 
 	mu           sync.Mutex
 	players      map[int]*player.Player
 	nextPlayerID int
 	ipConnCount  map[string]int
 	ipLastConn   map[string]time.Time
+}
+
+var wsUpgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 func New(cfg *config.Config, database *db.Database, w *world.World) *Server {
@@ -44,28 +49,49 @@ func New(cfg *config.Config, database *db.Database, w *world.World) *Server {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	// TCP listener
 	addr := fmt.Sprintf("%s:%s", s.cfg.Server.Host, s.cfg.Server.Port)
 	var err error
 	s.listener, err = net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("binding to %s: %w", addr, err)
 	}
-	slog.Info("listening (TCP)", "addr", addr)
-	go s.acceptLoop(ctx)
 
-	// WebSocket listener (optional)
-	if s.cfg.Server.WebSocketPort != "" {
-		wsAddr := fmt.Sprintf("%s:%s", s.cfg.Server.Host, s.cfg.Server.WebSocketPort)
-		go s.startWebSocketListener(ctx, wsAddr)
-	}
+	s.mux = newProtocolMux(s.listener)
 
+	go s.serveWebSocket(ctx, s.mux.HTTPListener())
+	go s.acceptTCPLoop(ctx, s.mux.TCPListener())
+
+	slog.Info("listening (TCP/WebSocket)", "addr", addr)
 	return nil
 }
 
-func (s *Server) acceptLoop(ctx context.Context) {
+func (s *Server) serveWebSocket(ctx context.Context, l net.Listener) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		if !s.allowConnection(ip) {
+			http.Error(w, "too many connections", http.StatusTooManyRequests)
+			return
+		}
+
+		wsConn, err := wsUpgrader.Upgrade(w, r, nil)
+		if err != nil {
+			slog.Debug("websocket upgrade failed", "ip", ip, "err", err)
+			return
+		}
+
+		wsConn.SetReadLimit(68000)
+		wrappedConn := protocol.NewWebSocketConn(wsConn)
+		s.addPlayer(ctx, wrappedConn, ip, "WebSocket")
+	})
+
+	srv := &http.Server{Handler: mux}
+	_ = srv.Serve(l)
+}
+
+func (s *Server) acceptTCPLoop(ctx context.Context, l net.Listener) {
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := l.Accept()
 		if err != nil {
 			select {
 			case <-ctx.Done():
@@ -77,7 +103,6 @@ func (s *Server) acceptLoop(ctx context.Context) {
 		}
 
 		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-
 		if !s.allowConnection(ip) {
 			_ = conn.Close()
 			continue
@@ -85,57 +110,6 @@ func (s *Server) acceptLoop(ctx context.Context) {
 
 		wrappedConn := protocol.NewTCPConn(conn)
 		s.addPlayer(ctx, wrappedConn, ip, "TCP")
-	}
-}
-
-var wsUpgrader = websocket.Upgrader{
-	// security: restrict origins to prevent Cross-Site WebSocket Hijacking.
-	// Game clients connect directly (not from a browser origin), so we check
-	// that Origin is either empty (non-browser) or matches the Host header.
-	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			return true // non-browser client
-		}
-		return origin == "http://"+r.Host || origin == "https://"+r.Host
-	},
-	ReadBufferSize:  4096,
-	WriteBufferSize: 4096,
-}
-
-func (s *Server) startWebSocketListener(ctx context.Context, addr string) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ws, err := wsUpgrader.Upgrade(w, r, nil)
-		if err != nil {
-			slog.Error("websocket upgrade failed", "err", err)
-			return
-		}
-
-		// Limit max incoming WS message to 65KB (EO packet max is 65535 + 2 byte prefix)
-		ws.SetReadLimit(68000)
-
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-
-		if !s.allowConnection(ip) {
-			_ = ws.Close()
-			return
-		}
-
-		wrappedConn := protocol.NewWebSocketConn(ws)
-		s.addPlayer(ctx, wrappedConn, ip, "WebSocket")
-	})
-
-	server := &http.Server{Addr: addr, Handler: mux}
-	slog.Info("listening (WebSocket)", "addr", addr)
-
-	go func() {
-		<-ctx.Done()
-		_ = server.Close()
-	}()
-
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		slog.Error("websocket listener error", "err", err)
 	}
 }
 
@@ -233,8 +207,6 @@ func (s *Server) RunPingLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// Collect player refs under lock, then send outside lock
-			// to avoid blocking all player operations during network I/O.
 			s.mu.Lock()
 			type pingTarget struct {
 				player *player.Player
@@ -310,6 +282,9 @@ func (s *Server) RunSaveLoop(ctx context.Context) {
 }
 
 func (s *Server) Shutdown() {
+	if s.mux != nil {
+		_ = s.mux.Close()
+	}
 	if s.listener != nil {
 		_ = s.listener.Close()
 	}

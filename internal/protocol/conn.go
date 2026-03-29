@@ -11,10 +11,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const (
-	readDeadline  = 60 * time.Second
-	writeDeadline = 10 * time.Second
-)
+// WebSocketConn is the interface required for WebSocket connections.
+// This allows both gorilla/websocket connections and custom implementations
+// (like hijacked HTTP connections) to work with the protocol layer.
+type WebSocketConn interface {
+	SetReadDeadline(time.Time) error
+	ReadMessage() (messageType int, p []byte, err error)
+	SetWriteDeadline(time.Time) error
+	WriteMessage(messageType int, data []byte) error
+	Close() error
+	RemoteAddr() net.Addr
+}
+
+const writeDeadline = 10 * time.Second
 
 // ConnType distinguishes TCP from WebSocket connections.
 type ConnType int
@@ -29,7 +38,7 @@ const (
 type Conn struct {
 	connType ConnType
 	tcp      net.Conn
-	ws       *websocket.Conn
+	ws       WebSocketConn
 	wsMu     sync.Mutex // websocket writes must be serialized
 }
 
@@ -38,20 +47,21 @@ func NewTCPConn(conn net.Conn) *Conn {
 	return &Conn{connType: ConnTCP, tcp: conn}
 }
 
-// NewWebSocketConn wraps a gorilla/websocket connection.
-func NewWebSocketConn(ws *websocket.Conn) *Conn {
+// NewWebSocketConn wraps a WebSocket connection.
+// It accepts any WebSocketConn interface implementation, including
+// gorilla/websocket connections and custom implementations.
+func NewWebSocketConn(ws WebSocketConn) *Conn {
 	return &Conn{connType: ConnWebSocket, ws: ws}
 }
 
 // ReadPacket reads a single EO packet.
-// For TCP: reads 2-byte length prefix, then the packet body.
-// For WebSocket: reads one binary message, strips the 2-byte length prefix.
+// For TCP: reads the 2-byte EO length prefix, then the packet body.
+// For WebSocket: reads one binary message containing only the EO packet body.
 // Returns the raw packet bytes (action + family + payload), without the length prefix.
 func (c *Conn) ReadPacket() ([]byte, error) {
 	switch c.connType {
 	case ConnTCP:
-		// Set read deadline to detect dead connections
-		_ = c.tcp.SetReadDeadline(time.Now().Add(readDeadline))
+		_ = c.tcp.SetReadDeadline(time.Time{}) // no deadline; ping/pong handles liveness
 
 		// Read 2-byte length prefix
 		lengthBuf := make([]byte, 2)
@@ -75,7 +85,7 @@ func (c *Conn) ReadPacket() ([]byte, error) {
 		return packetBuf, nil
 
 	case ConnWebSocket:
-		_ = c.ws.SetReadDeadline(time.Now().Add(readDeadline))
+		_ = c.ws.SetReadDeadline(time.Time{})
 		msgType, msg, err := c.ws.ReadMessage()
 		if err != nil {
 			return nil, err
@@ -83,20 +93,26 @@ func (c *Conn) ReadPacket() ([]byte, error) {
 		if msgType != websocket.BinaryMessage {
 			return nil, fmt.Errorf("expected binary message, got type %d", msgType)
 		}
-		// WS messages include the 2-byte length prefix — skip it
-		if len(msg) < 4 { // 2 length + at least 2 (action+family)
+		// Web clients send the 2-byte EO length prefix inside the WebSocket
+		// message. Strip it so the caller gets only action + family + payload,
+		// matching the TCP path.
+		if len(msg) >= 4 {
+			msg = msg[2:]
+		}
+		if len(msg) < 2 { // at least action + family
 			return nil, fmt.Errorf("websocket message too short: %d bytes", len(msg))
 		}
-		return msg[2:], nil
+		return msg, nil
 
 	default:
 		return nil, fmt.Errorf("unknown connection type")
 	}
 }
 
-// WritePacket writes a fully assembled packet (with 2-byte length prefix already prepended).
-// For TCP: writes raw bytes.
-// For WebSocket: writes as a binary message.
+// WritePacket writes a fully assembled packet with the 2-byte EO length prefix prepended.
+// For TCP: writes the full EO packet as-is.
+// For WebSocket: writes the full EO packet including the length prefix, matching
+// the web client convention where both send and receive include the prefix.
 func (c *Conn) WritePacket(buf []byte) error {
 	switch c.connType {
 	case ConnTCP:
@@ -105,6 +121,10 @@ func (c *Conn) WritePacket(buf []byte) error {
 		return err
 
 	case ConnWebSocket:
+		if len(buf) < 4 {
+			return fmt.Errorf("websocket packet too short: %d bytes", len(buf))
+		}
+
 		c.wsMu.Lock()
 		defer c.wsMu.Unlock()
 		_ = c.ws.SetWriteDeadline(time.Now().Add(writeDeadline))

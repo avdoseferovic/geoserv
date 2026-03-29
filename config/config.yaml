@@ -5,10 +5,6 @@ server:
   # Host Port the server will listen for incoming connections on
   port: "8078"
 
-  # Host port the server will listen for incoming websocket connections on
-  # leave blank to disable websockets
-  websocket_port: "8079"
-
   # Maximum amount of connections to allow to the server
   max_connections: 300
 
@@ -243,7 +239,6 @@ content:
 
 arenas:
   maps: []
-  # Example queue-driven arena closer to reoserv:
   # maps:
   #   - map: 187
   #     countdown_seconds: 5

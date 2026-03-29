@@ -43,7 +43,6 @@ type Config struct {
 type Server struct {
 	Host                string `yaml:"host"`
 	Port                string `yaml:"port"`
-	WebSocketPort       string `yaml:"websocket_port"`
 	MaxConnections      int    `yaml:"max_connections"`
 	MaxPlayers          int    `yaml:"max_players"`
 	MaxConnectionsPerIP int    `yaml:"max_connections_per_ip"`

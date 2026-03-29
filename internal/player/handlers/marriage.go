@@ -28,7 +28,10 @@ func handleMarriageOpen(ctx context.Context, p *player.Player, reader *player.Eo
 		slog.Error("failed to deserialize marriage open", "id", p.ID, "err", err)
 		return nil
 	}
-	_ = pkt
+
+	// Note: The packet contains NPC index, but we don't need to validate it
+	// since the client only sends this when clicking on a marriage NPC
+	_ = pkt.NpcIndex // Acknowledge the field (may be used for validation in the future)
 
 	return p.Bus.SendPacket(&server.MarriageOpenServerPacket{SessionId: p.GenerateSessionID()})
 }
