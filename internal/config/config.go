@@ -59,6 +59,8 @@ func Load(dir string) (*Config, error) {
 		}
 	}
 
+	applyEnvOverrides(&cfg)
+
 	return &cfg, nil
 }
 
@@ -71,4 +73,23 @@ func loadYAML(path string, cfg *Config) error {
 		return fmt.Errorf("parsing config %s: %w", path, err)
 	}
 	return nil
+}
+
+func applyEnvOverrides(cfg *Config) {
+	if cfg == nil {
+		return
+	}
+
+	overrideString(&cfg.Database.Driver, "GEOSERV_DB_DRIVER")
+	overrideString(&cfg.Database.Host, "GEOSERV_DB_HOST")
+	overrideString(&cfg.Database.Port, "GEOSERV_DB_PORT")
+	overrideString(&cfg.Database.Name, "GEOSERV_DB_NAME")
+	overrideString(&cfg.Database.Username, "GEOSERV_DB_USERNAME")
+	overrideString(&cfg.Database.Password, "GEOSERV_DB_PASSWORD")
+}
+
+func overrideString(target *string, envKey string) {
+	if value, ok := os.LookupEnv(envKey); ok && value != "" {
+		*target = value
+	}
 }
