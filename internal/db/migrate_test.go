@@ -2,6 +2,7 @@ package db
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/avdoseferovic/geoserv/internal/config"
@@ -17,6 +18,27 @@ func TestMigrationNames(t *testing.T) {
 
 	if len(names) != 2 {
 		t.Fatalf("expected 2 sqlite migrations, got %d", len(names))
+	}
+}
+
+func TestMySQLMigrationsUseCompatibleIndexableTypes(t *testing.T) {
+	t.Parallel()
+
+	data, err := migrationFiles.ReadFile("migrations/mysql/000001_init.up.sql")
+	if err != nil {
+		t.Fatalf("ReadFile returned error: %v", err)
+	}
+
+	sql := string(data)
+	forbidden := []string{
+		"`name` TEXT NOT NULL UNIQUE",
+		"CREATE INDEX IF NOT EXISTS",
+	}
+
+	for _, fragment := range forbidden {
+		if strings.Contains(sql, fragment) {
+			t.Fatalf("mysql migration contains unsupported fragment %q", fragment)
+		}
 	}
 }
 

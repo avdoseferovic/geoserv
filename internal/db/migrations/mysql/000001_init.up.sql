@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS `accounts` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `name` TEXT NOT NULL UNIQUE,
-    `password_hash` TEXT NOT NULL,
-    `email` TEXT NOT NULL,
-    `real_name` TEXT NOT NULL,
-    `location` TEXT NOT NULL,
-    `computer` TEXT NOT NULL,
+    `name` VARCHAR(32) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `real_name` VARCHAR(255) NOT NULL,
+    `location` VARCHAR(255) NOT NULL,
+    `computer` VARCHAR(255) NOT NULL,
     `hdid` INTEGER UNSIGNED NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `accounts_name_unique` UNIQUE (`name`),
@@ -178,11 +178,11 @@ CREATE TABLE IF NOT EXISTS `history` (
     PRIMARY KEY (`id`)
 );
 
-CREATE INDEX IF NOT EXISTS `idx_characters_account_id` ON `characters` (`account_id`);
-CREATE INDEX IF NOT EXISTS `idx_characters_guild_id` ON `characters` (`guild_id`);
-CREATE INDEX IF NOT EXISTS `idx_character_bank_character_id` ON `character_bank` (`character_id`);
-CREATE INDEX IF NOT EXISTS `idx_character_inventory_character_id` ON `character_inventory` (`character_id`);
-CREATE INDEX IF NOT EXISTS `idx_character_quest_progress_character_id` ON `character_quest_progress` (`character_id`);
-CREATE INDEX IF NOT EXISTS `idx_character_spells_character_id` ON `character_spells` (`character_id`);
-CREATE INDEX IF NOT EXISTS `idx_bans_account_id` ON `bans` (`account_id`);
-CREATE INDEX IF NOT EXISTS `idx_bans_ip` ON `bans` (`ip`);
+CREATE INDEX `idx_characters_account_id` ON `characters` (`account_id`);
+CREATE INDEX `idx_characters_guild_id` ON `characters` (`guild_id`);
+CREATE INDEX `idx_character_bank_character_id` ON `character_bank` (`character_id`);
+CREATE INDEX `idx_character_inventory_character_id` ON `character_inventory` (`character_id`);
+CREATE INDEX `idx_character_quest_progress_character_id` ON `character_quest_progress` (`character_id`);
+CREATE INDEX `idx_character_spells_character_id` ON `character_spells` (`character_id`);
+CREATE INDEX `idx_bans_account_id` ON `bans` (`account_id`);
+CREATE INDEX `idx_bans_ip` ON `bans` (`ip`);
