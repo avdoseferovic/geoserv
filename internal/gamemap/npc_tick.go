@@ -4,6 +4,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/avdoseferovic/geoserv/internal/protocol"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -12,6 +13,7 @@ import (
 type npcTickBatch struct {
 	positions []server.NpcUpdatePosition
 	attacks   []server.NpcUpdateAttack
+	chats     []server.NpcUpdateChat
 }
 
 // TickNPCs processes NPC logic for one tick: respawning, movement, actions.
@@ -46,7 +48,11 @@ func (m *GameMap) TickNPCs(actRate int) {
 		}
 
 		npc.ActTicks++
-		npc.TalkTicks++
+		npc.TalkTicks += actRate
+
+		if chat, ok := m.npcTalkCollect(npc); ok {
+			batch.chats = append(batch.chats, chat)
+		}
 
 		npcActRate := m.npcSpeedForType(npc.SpawnType)
 		if npcActRate <= 0 {
@@ -83,7 +89,7 @@ func (m *GameMap) TickNPCs(actRate int) {
 		}
 	}
 
-	if len(batch.positions) == 0 && len(batch.attacks) == 0 {
+	if len(batch.positions) == 0 && len(batch.attacks) == 0 && len(batch.chats) == 0 {
 		m.mu.Unlock()
 		return
 	}
@@ -108,6 +114,7 @@ func (m *GameMap) TickNPCs(actRate int) {
 		pkt := &server.NpcPlayerServerPacket{
 			Positions: batch.positions,
 			Attacks:   batch.attacks,
+			Chats:     batch.chats,
 		}
 		if npcAttackTargetsPlayer(batch.attacks, ps.id) {
 			pkt.Hp = &ps.hp
@@ -123,4 +130,31 @@ func npcPositionUpdate(npc *NpcState) server.NpcUpdatePosition {
 		Coords:    eoproto.Coords{X: npc.X, Y: npc.Y},
 		Direction: eoproto.Direction(npc.Direction),
 	}
+}
+
+func (m *GameMap) npcTalkCollect(npc *NpcState) (server.NpcUpdateChat, bool) {
+	talkRate := m.cfg.NPCs.TalkRate
+	if npc == nil || !npc.Alive || talkRate <= 0 || npc.TalkTicks < talkRate {
+		return server.NpcUpdateChat{}, false
+	}
+
+	record := pubdata.GetNpcTalk(npc.ID)
+	if record == nil || len(record.Messages) == 0 {
+		return server.NpcUpdateChat{}, false
+	}
+
+	npc.TalkTicks = 0
+	if rand.IntN(101) > record.Rate {
+		return server.NpcUpdateChat{}, false
+	}
+
+	msg := record.Messages[rand.IntN(len(record.Messages))].Message
+	if msg == "" {
+		return server.NpcUpdateChat{}, false
+	}
+
+	return server.NpcUpdateChat{
+		NpcIndex: npc.Index,
+		Message:  msg,
+	}, true
 }

@@ -14,6 +14,7 @@ import (
 type MapCharacter struct {
 	PlayerID      int
 	Name          string
+	Title         string
 	MapID         int
 	X, Y          int
 	Direction     int
@@ -84,19 +85,22 @@ type GameMap struct {
 	// Jukebox state
 	jukeboxTrackID int
 	jukeboxTicks   int
+
+	chestSpawnDefs map[[2]int][]ChestSpawnDef
 }
 
 func New(id int, emf *eomap.Emf, cfg *config.Config) *GameMap {
 	m := &GameMap{
-		ID:         id,
-		emf:        emf,
-		cfg:        cfg,
-		players:    make(map[int]*MapCharacter),
-		chests:     make(map[[2]int]*Chest),
-		tiles:      make(map[[2]int]eomap.MapTileSpec),
-		arenaTiles: make(map[[2]int]struct{}),
-		warps:      make(map[[2]int]eomap.MapWarp),
-		openDoors:  make(map[[2]int]int),
+		ID:             id,
+		emf:            emf,
+		cfg:            cfg,
+		players:        make(map[int]*MapCharacter),
+		chests:         make(map[[2]int]*Chest),
+		tiles:          make(map[[2]int]eomap.MapTileSpec),
+		arenaTiles:     make(map[[2]int]struct{}),
+		warps:          make(map[[2]int]eomap.MapWarp),
+		openDoors:      make(map[[2]int]int),
+		chestSpawnDefs: make(map[[2]int][]ChestSpawnDef),
 	}
 
 	for _, row := range emf.TileSpecRows {
@@ -117,6 +121,19 @@ func New(id int, emf *eomap.Emf, cfg *config.Config) *GameMap {
 		if spec == eomap.MapTileSpec_Chest {
 			m.chests[coords] = &Chest{}
 		}
+	}
+
+	for _, item := range emf.Items {
+		coords := [2]int{item.Coords.X, item.Coords.Y}
+		if _, ok := m.chests[coords]; !ok {
+			continue
+		}
+		m.chestSpawnDefs[coords] = append(m.chestSpawnDefs[coords], ChestSpawnDef{
+			Slot:      item.ChestSlot,
+			ItemID:    item.ItemId,
+			Amount:    item.Amount,
+			SpawnTime: item.SpawnTime,
+		})
 	}
 
 	for _, row := range emf.WarpRows {

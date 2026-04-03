@@ -1,0 +1,15 @@
+# Rate limits are in milliseconds.
+# Packets sent faster than these intervals are ignored.
+#
+# Keep this file focused on high-frequency or spam-prone actions.
+limits:
+  Walk.Player: 180
+  Attack.Use: 350
+  Sit.Request: 300
+  Chair.Request: 300
+  Face.Player: 120
+  Emote.Report: 250
+  Door.Open: 400
+  Refresh.Request: 750
+  Players.Request: 1000
+  Players.List: 1000

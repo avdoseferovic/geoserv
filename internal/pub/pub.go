@@ -18,9 +18,11 @@ var (
 	SpellDB *eopub.Esf
 	ClassDB *eopub.Ecf
 	DropDB  *eopubsrv.DropFile
+	TalkDB  *eopubsrv.TalkFile
 
 	// npcDropIndex provides O(1) lookup for NPC drop tables.
 	npcDropIndex map[int][]eopubsrv.DropRecord
+	npcTalkIndex map[int]eopubsrv.TalkRecord
 
 	// mapMetaCache caches map RID and file size to avoid disk I/O per login.
 	mapMetaCache map[int]mapMeta
@@ -67,10 +69,23 @@ func LoadAll() error {
 		slog.Info("EDF loaded", "npc_drop_tables", len(DropDB.Npcs))
 	}
 
+	TalkDB, err = loadTalkFile("data/data/dat001.etf")
+	if err != nil {
+		slog.Warn("failed to load talk file (non-fatal)", "err", err)
+		TalkDB = &eopubsrv.TalkFile{}
+	} else {
+		slog.Info("ETF loaded", "npc_talk_tables", len(TalkDB.Npcs))
+	}
+
 	// Build O(1) NPC drop index
 	npcDropIndex = make(map[int][]eopubsrv.DropRecord, len(DropDB.Npcs))
 	for _, npc := range DropDB.Npcs {
 		npcDropIndex[npc.NpcId] = npc.Drops
+	}
+
+	npcTalkIndex = make(map[int]eopubsrv.TalkRecord, len(TalkDB.Npcs))
+	for _, npc := range TalkDB.Npcs {
+		npcTalkIndex[npc.NpcId] = npc
 	}
 
 	// Cache map metadata to avoid disk reads on login
@@ -107,6 +122,24 @@ func GetClass(id int) *eopub.EcfRecord {
 // GetNpcDrops returns the drop records for an NPC using O(1) index lookup.
 func GetNpcDrops(npcID int) []eopubsrv.DropRecord {
 	return npcDropIndex[npcID]
+}
+
+// GetNpcTalk returns the talk record for an NPC, if available.
+func GetNpcTalk(npcID int) *eopubsrv.TalkRecord {
+	record, ok := npcTalkIndex[npcID]
+	if !ok {
+		if TalkDB == nil {
+			return nil
+		}
+		for _, npc := range TalkDB.Npcs {
+			if npc.NpcId == npcID {
+				record := npc
+				return &record
+			}
+		}
+		return nil
+	}
+	return &record
 }
 
 // Pub file RID/length helpers for welcome packets.
@@ -242,6 +275,19 @@ func loadDropFile(path string) (*eopubsrv.DropFile, error) {
 		return nil, err
 	}
 	return &df, nil
+}
+
+func loadTalkFile(path string) (*eopubsrv.TalkFile, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	reader := data.NewEoReader(raw)
+	var tf eopubsrv.TalkFile
+	if err := tf.Deserialize(reader); err != nil {
+		return nil, err
+	}
+	return &tf, nil
 }
 
 func loadEIF(path string) (*eopub.Eif, error) {

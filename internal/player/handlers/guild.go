@@ -39,6 +39,9 @@ func handleGuildRequest(ctx context.Context, p *player.Player, reader *player.Eo
 		slog.Error("failed to deserialize guild request", "id", p.ID, "err", err)
 		return nil
 	}
+	if p.World != nil && p.Cfg.Guild.MinPlayers > 1 && p.World.GetOnlineUnguildedPlayerCount() < p.Cfg.Guild.MinPlayers {
+		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_NoCandidates})
+	}
 	return p.Bus.SendPacket(&server.GuildReplyServerPacket{
 		ReplyCode:     server.GuildReply_CreateAdd,
 		ReplyCodeData: &server.GuildReplyReplyCodeDataCreateAdd{Name: pkt.GuildName},
@@ -79,6 +82,9 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 	if err != nil || exists {
 		return nil
 	}
+	if p.World != nil && p.Cfg.Guild.MinPlayers > 1 && p.World.GetOnlineUnguildedPlayerCount() < p.Cfg.Guild.MinPlayers {
+		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_NoCandidates})
+	}
 
 	if cost := p.Cfg.Guild.CreateCost; cost > 0 {
 		if !p.RemoveItem(1, cost) {
@@ -95,6 +101,9 @@ func handleGuildCreate(ctx context.Context, p *player.Player, reader *player.EoR
 	}
 
 	guildID, _ := result.LastInsertId()
+	for i, rankName := range guild.DefaultRanks(p.Cfg.Guild) {
+		_ = p.DB.Execute(ctx, `INSERT INTO guild_ranks (guild_id, index, rank) VALUES (?, ?, ?)`, guildID, i+1, rankName)
+	}
 	_ = p.DB.Execute(ctx,
 		`UPDATE characters SET guild_id = ?, guild_rank = 1, guild_rank_string = ? WHERE id = ?`,
 		guildID, p.Cfg.Guild.DefaultLeaderRankName, *p.CharacterID)
@@ -140,7 +149,7 @@ func handleGuildTake(ctx context.Context, p *player.Player, reader *player.EoRea
 	case client.GuildInfo_Description:
 		return p.Bus.SendPacket(&server.GuildTakeServerPacket{Description: g.Description})
 	case client.GuildInfo_Ranks:
-		return p.Bus.SendPacket(&server.GuildRankServerPacket{Ranks: guild.NormalizeRanks(ranks)})
+		return p.Bus.SendPacket(&server.GuildRankServerPacket{Ranks: guild.NormalizeRanks(p.Cfg.Guild, ranks)})
 	case client.GuildInfo_Bank:
 		return p.Bus.SendPacket(&server.GuildSellServerPacket{GoldAmount: g.Bank})
 	default:
@@ -211,7 +220,7 @@ func handleGuildUse(ctx context.Context, p *player.Player, reader *player.EoRead
 			return nil
 		}
 	}
-	rankName := guild.NormalizeRanks(guild.MustLoadRanks(ctx, p.DB, info.ID))[8]
+	rankName := guild.NormalizeRanks(p.Cfg.Guild, guild.MustLoadRanks(ctx, p.DB, info.ID))[8]
 	if err := p.DB.Execute(ctx, `UPDATE characters SET guild_id = ?, guild_rank = 9, guild_rank_string = ? WHERE LOWER(name) = ?`, info.ID, rankName, strings.ToLower(targetName)); err != nil {
 		return nil
 	}
@@ -283,7 +292,7 @@ func handleGuildReport(ctx context.Context, p *player.Player, reader *player.EoR
 	staff, _ := guild.LoadStaff(ctx, p.DB, g.ID)
 	return p.Bus.SendPacket(&server.GuildReportServerPacket{
 		Name: g.Name, Tag: g.Tag, CreateDate: g.CreatedAt, Description: g.Description,
-		Wealth: guild.BankWealth(g.Bank), Ranks: guild.NormalizeRanks(ranks), Staff: staff,
+		Wealth: guild.BankWealth(g.Bank), Ranks: guild.NormalizeRanks(p.Cfg.Guild, ranks), Staff: staff,
 	})
 }
 

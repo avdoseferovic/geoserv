@@ -50,6 +50,14 @@ func (w *World) DropItem(mapID, itemID, amount, x, y, droppedBy int) int {
 	return m.DropItem(itemID, amount, x, y, droppedBy)
 }
 
+func (w *World) DropNpcItem(mapID, itemID, amount, x, y, protectedFor int) int {
+	m := w.getMap(mapID)
+	if m == nil {
+		return 0
+	}
+	return m.DropNpcItem(itemID, amount, x, y, protectedFor)
+}
+
 func (w *World) PickupItem(mapID, uid, playerID int) (int, int, bool) {
 	m := w.getMap(mapID)
 	if m == nil {
@@ -178,6 +186,17 @@ func (w *World) GetOnlinePlayers() any {
 		result = append(result, m.GetOnlinePlayers()...)
 	}
 	return result
+}
+
+func (w *World) GetOnlineUnguildedPlayerCount() int {
+	infos, _ := w.GetOnlinePlayers().([]gamemap.OnlinePlayerInfo)
+	count := 0
+	for _, info := range infos {
+		if info.GuildTag == "" {
+			count++
+		}
+	}
+	return count
 }
 
 func (w *World) WarpPlayer(playerID, fromMapID, toMapID, toX, toY int) any {

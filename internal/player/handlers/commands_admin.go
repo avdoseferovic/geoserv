@@ -113,8 +113,9 @@ func handleCmdJail(p *player.Player, args []string) {
 		MapId:        jailMap,
 		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
 	})
-	_ = jailX
-	_ = jailY
+	if pos, _ := p.World.GetPlayerPosition(targetID).(*gamemap.PlayerPosition); pos != nil {
+		p.World.SetPendingWarp(pos.MapID, targetID, jailMap, jailX, jailY)
+	}
 
 	slog.Info("admin jail", "admin", p.CharName, "target", targetName)
 }
@@ -132,8 +133,15 @@ func handleCmdFree(p *player.Player, args []string) {
 	}
 
 	freeMap := p.Cfg.Jail.FreeMap
+	freeX := p.Cfg.Jail.FreeX
+	freeY := p.Cfg.Jail.FreeY
 	if freeMap <= 0 {
 		freeMap = p.Cfg.Rescue.Map
+		freeX = p.Cfg.Rescue.X
+		freeY = p.Cfg.Rescue.Y
+	}
+	if pos, _ := p.World.GetPlayerPosition(targetID).(*gamemap.PlayerPosition); pos != nil {
+		p.World.SetPendingWarp(pos.MapID, targetID, freeMap, freeX, freeY)
 	}
 
 	p.World.SendToPlayer(targetID, &server.WarpRequestServerPacket{

@@ -42,6 +42,7 @@ type WorldInterface interface {
 	GetNpcHpPercentage(mapID, npcIndex int) int
 	GetNpcAt(mapID, x, y int) int // returns npc index or -1
 	DropItem(mapID, itemID, amount, x, y, droppedBy int) int
+	DropNpcItem(mapID, itemID, amount, x, y, protectedFor int) int
 	PickupItem(mapID, uid, playerID int) (itemID, amount int, ok bool)
 	GetPlayerBus(playerID int) any
 	GetPlayerSession(playerID int) *Player
@@ -58,6 +59,7 @@ type WorldInterface interface {
 	IsLoggedIn(accountID int) bool
 	AddLoggedInAccount(accountID int)
 	GetOnlinePlayers() any
+	GetOnlineUnguildedPlayerCount() int
 	WarpPlayer(playerID, fromMapID, toMapID, toX, toY int) any
 	GetPendingWarp(mapID, playerID int) (toMapID, toX, toY int, ok bool)
 	SetPendingWarp(mapID, playerID, toMapID, toX, toY int)
@@ -112,6 +114,7 @@ type Player struct {
 	CharacterID   *int
 	MapID         int
 	CharName      string
+	Title         string
 	CharX, CharY  int
 	CharDirection int
 	CharGender    int
@@ -212,6 +215,7 @@ func (p *Player) Run(ctx context.Context) {
 	// Packet rate limiter: simple token bucket
 	var pktCount int
 	pktWindowStart := time.Now()
+	packetLimiter := newPacketRateLimiter(p.Cfg.PacketRateLimits)
 
 	for {
 		select {
@@ -242,6 +246,11 @@ func (p *Player) Run(ctx context.Context) {
 				slog.Warn("invalid sequence", "id", p.ID, "err", err)
 				return
 			}
+		}
+
+		if !packetLimiter.Allow(time.Now(), family, action) {
+			slog.Debug("packet rate-limited", "id", p.ID, "family", int(family), "action", int(action))
+			continue
 		}
 
 		slog.Debug("packet received", "id", p.ID, "family", int(family), "action", int(action), "state", p.State)

@@ -87,6 +87,12 @@ func handlePriestRequest(ctx context.Context, p *player.Player, reader *player.E
 	if playerStatus.Level < p.Cfg.Marriage.MinLevel || partnerStatus.Level < p.Cfg.Marriage.MinLevel {
 		return p.Bus.SendPacket(&server.PriestReplyServerPacket{ReplyCode: server.PriestReply_LowLevel})
 	}
+	if !dressedForWedding(p) {
+		return p.Bus.SendPacket(&server.PriestReplyServerPacket{ReplyCode: server.PriestReply_NoPermission})
+	}
+	if partnerSession := p.World.GetPlayerSession(partnerID); partnerSession == nil || !dressedForWedding(partnerSession) {
+		return p.Bus.SendPacket(&server.PriestReplyServerPacket{ReplyCode: server.PriestReply_NoPermission})
+	}
 	if playerStatus.Partner != "" || partnerStatus.Partner != "" {
 		return p.Bus.SendPacket(&server.PriestReplyServerPacket{ReplyCode: server.PriestReply_PartnerAlreadyMarried})
 	}
@@ -128,6 +134,9 @@ func handlePriestAccept(ctx context.Context, p *player.Player, reader *player.Eo
 
 	if !world.AcceptWedding(p.MapID, p.ID) {
 		return p.Bus.SendPacket(&server.PriestReplyServerPacket{ReplyCode: server.PriestReply_Busy})
+	}
+	if p.Cfg.Marriage.MfxID > 0 {
+		p.World.BroadcastMap(p.MapID, -1, &server.JukeboxPlayerServerPacket{MfxId: p.Cfg.Marriage.MfxID})
 	}
 	if playerID, partnerID, ok := world.Participants(p.MapID); ok {
 		_ = p.Bus.SendPacket(&server.TalkServerServerPacket{Message: "Wedding ceremony accepted. Listen for the priest's vows."})
@@ -197,8 +206,34 @@ func handlePriestUse(ctx context.Context, p *player.Player, reader *player.EoRea
 		world.EndWedding(p.MapID)
 		return nil
 	}
+	if p.Cfg.Marriage.RingItemID > 0 {
+		p.AddItem(p.Cfg.Marriage.RingItemID, 1)
+		if partner := p.World.GetPlayerSession(partnerID); partner != nil {
+			partner.Mu.Lock()
+			partner.AddItem(p.Cfg.Marriage.RingItemID, 1)
+			partner.CalculateStats()
+			partner.Mu.Unlock()
+		}
+	}
+	if p.Cfg.Marriage.CelebrationEffectID > 0 {
+		_ = p.Bus.SendPacket(&server.MusicPlayerServerPacket{SoundId: p.Cfg.Marriage.CelebrationEffectID})
+		_ = partnerBus.SendPacket(&server.MusicPlayerServerPacket{SoundId: p.Cfg.Marriage.CelebrationEffectID})
+	}
 	world.EndWedding(p.MapID)
 	_ = p.Bus.SendPacket(&server.MarriageReplyServerPacket{ReplyCode: server.MarriageReply_Success, ReplyCodeData: &server.MarriageReplyReplyCodeDataSuccess{GoldAmount: p.Inventory[1]}})
 	_ = partnerBus.SendPacket(&server.MarriageReplyServerPacket{ReplyCode: server.MarriageReply_Success, ReplyCodeData: &server.MarriageReplyReplyCodeDataSuccess{GoldAmount: 0}})
 	return nil
+}
+
+func dressedForWedding(p *player.Player) bool {
+	if p == nil {
+		return false
+	}
+
+	switch p.CharGender {
+	case 0:
+		return p.Cfg.Marriage.FemaleArmorID <= 0 || p.Equipment.Armor == p.Cfg.Marriage.FemaleArmorID
+	default:
+		return p.Cfg.Marriage.MaleArmorID <= 0 || p.Equipment.Armor == p.Cfg.Marriage.MaleArmorID
+	}
 }

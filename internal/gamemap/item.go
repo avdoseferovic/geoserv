@@ -19,8 +19,8 @@ type GroundItem struct {
 	ItemID         int
 	Amount         int
 	X, Y           int
-	DroppedBy      int // playerID who dropped it, 0 for NPC/chest drops
-	ProtectedTicks int // ticks remaining where only DroppedBy can pick up
+	ProtectedFor   int // playerID with temporary exclusive pickup rights, 0 = public
+	ProtectedTicks int // ticks remaining where only ProtectedFor can pick up
 }
 
 func (m *GameMap) pickupGroundItemLocked(playerID int, matches func(*GroundItem) bool) *GroundItem {
@@ -28,7 +28,7 @@ func (m *GameMap) pickupGroundItemLocked(playerID int, matches func(*GroundItem)
 		if !matches(item) {
 			continue
 		}
-		if item.ProtectedTicks > 0 && item.DroppedBy != playerID {
+		if item.ProtectedTicks > 0 && item.ProtectedFor != 0 && item.ProtectedFor != playerID {
 			continue
 		}
 
@@ -70,18 +70,27 @@ func (m *GameMap) trimGroundItemsLocked(maxItems int) []int {
 
 // DropItem adds an item to the map floor. Returns the UID.
 func (m *GameMap) DropItem(itemID, amount, x, y, droppedBy int) int {
+	protectedTicks := 0
+	if droppedBy > 0 && m.cfg.World.DropProtectPlayer > 0 {
+		protectedTicks = m.cfg.World.DropProtectPlayer * 8
+	}
+	return m.dropItem(itemID, amount, x, y, droppedBy, droppedBy, protectedTicks)
+}
+
+// DropNpcItem adds an NPC-generated item to the map floor. Returns the UID.
+func (m *GameMap) DropNpcItem(itemID, amount, x, y, protectedFor int) int {
+	protectedTicks := 0
+	if protectedFor > 0 && m.cfg.World.DropProtectNPC > 0 {
+		protectedTicks = m.cfg.World.DropProtectNPC * 8
+	}
+	return m.dropItem(itemID, amount, x, y, 0, protectedFor, protectedTicks)
+}
+
+func (m *GameMap) dropItem(itemID, amount, x, y, excludePlayerID, protectedFor, protectedTicks int) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	uid := int(nextItemUID.Add(1))
-
-	// Calculate drop protection ticks (8 ticks per second)
-	protectedTicks := 0
-	if droppedBy > 0 && m.cfg.World.DropProtectPlayer > 0 {
-		protectedTicks = m.cfg.World.DropProtectPlayer * 8
-	} else if droppedBy == 0 && m.cfg.World.DropProtectNPC > 0 {
-		protectedTicks = m.cfg.World.DropProtectNPC * 8
-	}
 
 	item := &GroundItem{
 		UID:            uid,
@@ -89,7 +98,7 @@ func (m *GameMap) DropItem(itemID, amount, x, y, droppedBy int) int {
 		Amount:         amount,
 		X:              x,
 		Y:              y,
-		DroppedBy:      droppedBy,
+		ProtectedFor:   protectedFor,
 		ProtectedTicks: protectedTicks,
 	}
 
@@ -107,7 +116,7 @@ func (m *GameMap) DropItem(itemID, amount, x, y, droppedBy int) int {
 		for _, removedUID := range removedUIDs {
 			_ = ch.Bus.SendPacket(&server.ItemRemoveServerPacket{ItemIndex: removedUID})
 		}
-		if ch.PlayerID == droppedBy {
+		if excludePlayerID > 0 && ch.PlayerID == excludePlayerID {
 			continue
 		}
 		_ = ch.Bus.SendPacket(pkt)

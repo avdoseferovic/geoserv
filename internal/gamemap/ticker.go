@@ -54,7 +54,13 @@ func (m *GameMap) Tick() {
 	}
 
 	// Quake effects
-	m.tickQuake()
+	if m.cfg.World.QuakeRate > 0 && tc%m.cfg.World.QuakeRate == 0 {
+		m.tickQuake()
+	}
+
+	if m.cfg.World.ChestSpawnRate > 0 && tc%m.cfg.World.ChestSpawnRate == 0 {
+		m.tickChestRespawn()
+	}
 
 	// Warp suck
 	if m.cfg.World.WarpSuckRate > 0 {
@@ -415,6 +421,9 @@ func (m *GameMap) tickEvacuate() {
 			_ = bus.SendPacket(&server.TalkServerServerPacket{
 				Message: fmt.Sprintf("Map evacuation in %d seconds!", secs),
 			})
+			if m.cfg.Evacuate.SfxID > 0 {
+				_ = bus.SendPacket(&server.MusicPlayerServerPacket{SoundId: m.cfg.Evacuate.SfxID})
+			}
 		}
 		return
 	}

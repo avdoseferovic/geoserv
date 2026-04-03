@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/avdoseferovic/geoserv/internal/config"
 	"github.com/avdoseferovic/geoserv/internal/db"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -72,8 +73,25 @@ func MustLoadRanks(ctx context.Context, d *db.Database, guildID int) []string {
 	return ranks
 }
 
-func NormalizeRanks(ranks []string) []string {
-	base := []string{"Leader", "Recruiter", "Officer", "Veteran", "Member", "Member", "Member", "Member", "New Member"}
+func DefaultRanks(cfg config.Guild) []string {
+	leader := strings.TrimSpace(cfg.DefaultLeaderRankName)
+	if leader == "" {
+		leader = "Leader"
+	}
+	recruiter := strings.TrimSpace(cfg.DefaultRecruiterRank)
+	if recruiter == "" {
+		recruiter = "Recruiter"
+	}
+	newMember := strings.TrimSpace(cfg.DefaultNewMemberRank)
+	if newMember == "" {
+		newMember = "New Member"
+	}
+
+	return []string{leader, recruiter, "Officer", "Veteran", "Member", "Member", "Member", "Member", newMember}
+}
+
+func NormalizeRanks(cfg config.Guild, ranks []string) []string {
+	base := DefaultRanks(cfg)
 	for i := 0; i < len(ranks) && i < 9; i++ {
 		if strings.TrimSpace(ranks[i]) != "" {
 			base[i] = ranks[i]

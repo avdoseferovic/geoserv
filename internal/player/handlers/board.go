@@ -87,13 +87,12 @@ func handleBoardCreate(ctx context.Context, p *player.Player, reader *player.EoR
 		return nil
 	}
 
-	// Check per-user post limit
-	if p.Cfg.Board.MaxUserPosts > 0 {
-		var userPostCount int
-		_ = p.DB.QueryRow(ctx,
-			`SELECT COUNT(1) FROM board_posts WHERE board_id = ? AND character_id = ?`,
-			pkt.BoardId, *p.CharacterID).Scan(&userPostCount)
-		if userPostCount >= p.Cfg.Board.MaxUserPosts {
+	recentPosts, userPostCount, err := queryBoardPostCounts(ctx, p, pkt.BoardId, *p.CharacterID)
+	if err == nil {
+		if p.Cfg.Board.MaxRecentPosts > 0 && recentPosts >= p.Cfg.Board.MaxRecentPosts {
+			return nil
+		}
+		if p.Cfg.Board.MaxUserPosts > 0 && userPostCount >= p.Cfg.Board.MaxUserPosts {
 			return nil
 		}
 	}
@@ -108,7 +107,7 @@ func handleBoardCreate(ctx context.Context, p *player.Player, reader *player.EoR
 		body = body[:maxLen]
 	}
 
-	err := p.DB.Execute(ctx,
+	err = p.DB.Execute(ctx,
 		`INSERT INTO board_posts (board_id, character_id, subject, body) VALUES (?, ?, ?, ?)`,
 		pkt.BoardId, *p.CharacterID, subject, body)
 	if err != nil {
@@ -191,4 +190,25 @@ func queryBoardPostsWithLimit(ctx context.Context, p *player.Player, boardID, li
 		posts = append(posts, post)
 	}
 	return posts, rows.Err()
+}
+
+func queryBoardPostCounts(ctx context.Context, p *player.Player, boardID, characterID int) (recentPosts int, totalPosts int, err error) {
+	if p.Cfg.Board.MaxRecentPosts > 0 && p.Cfg.Board.RecentPostTime > 0 {
+		cutoff := time.Now().Add(-time.Duration(p.Cfg.Board.RecentPostTime) * time.Minute)
+		if err = p.DB.QueryRow(ctx,
+			`SELECT COUNT(1) FROM board_posts WHERE board_id = ? AND character_id = ? AND created_at >= ?`,
+			boardID, characterID, cutoff,
+		).Scan(&recentPosts); err != nil {
+			return 0, 0, err
+		}
+	}
+
+	if err = p.DB.QueryRow(ctx,
+		`SELECT COUNT(1) FROM board_posts WHERE board_id = ? AND character_id = ?`,
+		boardID, characterID,
+	).Scan(&totalPosts); err != nil {
+		return 0, 0, err
+	}
+
+	return recentPosts, totalPosts, nil
 }

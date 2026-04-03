@@ -147,7 +147,7 @@ func handleAttackUse(ctx context.Context, p *player.Player, reader *player.EoRea
 					amount = drop.MinAmount + rand.IntN(drop.MaxAmount-drop.MinAmount+1)
 				}
 				if amount > 0 {
-					p.World.DropItem(p.MapID, drop.ItemId, amount, targetX, targetY, p.ID)
+					p.World.DropNpcItem(p.MapID, drop.ItemId, amount, targetX, targetY, p.ID)
 				}
 			}
 		}

@@ -45,7 +45,7 @@ func handleWelcomeRequest(ctx context.Context, p *player.Player, reader *player.
 		statPoints, skillPoints                          int
 		adminLevel, gender, race, hairStyle, hairColor   int
 		goldBank, classID                                int
-		name, home, guildTag                             string
+		name, home, guildTag, title                      string
 		eqBoots, eqAccessory, eqGloves, eqBelt           int
 		eqArmor, eqNecklace, eqHat, eqShield, eqWeapon   int
 		eqRing1, eqRing2, eqArmlet1, eqArmlet2           int
@@ -54,7 +54,7 @@ func handleWelcomeRequest(ctx context.Context, p *player.Player, reader *player.
 	_ = home
 
 	err := p.DB.QueryRow(ctx,
-		`SELECT c.id, c.account_id, c.name, COALESCE(c.home, ''), c.level, c.map, c.x, c.y, c.direction,
+		`SELECT c.id, c.account_id, c.name, COALESCE(c.home, ''), COALESCE(c.title, ''), c.level, c.map, c.x, c.y, c.direction,
 		        c.hp, c.hp, c.tp, c.tp, c.experience,
 		        c.strength, c.intelligence, c.wisdom, c.agility, c.constitution, c.charisma,
 		        c.stat_points, c.skill_points,
@@ -67,7 +67,7 @@ func handleWelcomeRequest(ctx context.Context, p *player.Player, reader *player.
 		 FROM characters c
 		 LEFT JOIN guilds g ON c.guild_id = g.id
 		 WHERE c.id = ?`, pkt.CharacterId,
-	).Scan(&charID, &accountID, &name, &home, &level, &mapID, &x, &y, &direction,
+	).Scan(&charID, &accountID, &name, &home, &title, &level, &mapID, &x, &y, &direction,
 		&hp, &maxHP, &tp, &maxTP, &exp,
 		&str, &intl, &wis, &agi, &con, &cha,
 		&statPoints, &skillPoints,
@@ -103,6 +103,7 @@ func handleWelcomeRequest(ctx context.Context, p *player.Player, reader *player.
 	p.CharacterID = &charID
 	p.MapID = mapID
 	p.CharName = name
+	p.Title = title
 	p.CharX = x
 	p.CharY = y
 	p.CharDirection = direction
@@ -170,7 +171,7 @@ func handleWelcomeRequest(ctx context.Context, p *player.Player, reader *player.
 			EcfRid:        pubdata.EcfRid(),
 			EcfLength:     pubdata.EcfLength(),
 			Name:          name,
-			Title:         "",
+			Title:         title,
 			GuildName:     "",
 			GuildRankName: "",
 			ClassId:       p.ClassID,
@@ -353,6 +354,7 @@ func handleWelcomeMsg(ctx context.Context, p *player.Player, reader *player.EoRe
 		p.World.EnterMap(p.MapID, &gamemap.MapCharacter{
 			PlayerID:  p.ID,
 			Name:      p.CharName,
+			Title:     p.Title,
 			MapID:     p.MapID,
 			X:         p.CharX,
 			Y:         p.CharY,

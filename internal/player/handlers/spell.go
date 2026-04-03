@@ -402,7 +402,7 @@ func castSpellOnNpc(p *player.Player, pkt client.SpellTargetOtherClientPacket, s
 			amount = drop.MinAmount + rand.IntN(drop.MaxAmount-drop.MinAmount+1)
 		}
 		if amount > 0 {
-			p.World.DropItem(p.MapID, drop.ItemId, amount, npcX, npcY, p.ID)
+			p.World.DropNpcItem(p.MapID, drop.ItemId, amount, npcX, npcY, p.ID)
 		}
 	}
 

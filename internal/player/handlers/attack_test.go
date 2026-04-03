@@ -691,6 +691,9 @@ func (w *attackTargetTestWorld) DamageNpc(mapID, npcIndex, playerID, damage int)
 }
 func (w *attackTargetTestWorld) GetNpcHpPercentage(int, int) int           { return w.npcHpPercentage }
 func (w *attackTargetTestWorld) DropItem(int, int, int, int, int, int) int { return 0 }
+func (w *attackTargetTestWorld) DropNpcItem(int, int, int, int, int, int) int {
+	return 0
+}
 func (w *attackTargetTestWorld) PickupItem(int, int, int) (int, int, bool) { return 0, 0, false }
 func (w *attackTargetTestWorld) GetPlayerBus(int) any                      { return nil }
 func (w *attackTargetTestWorld) GetPlayerSession(playerID int) *player.Player {
@@ -713,6 +716,7 @@ func (w *attackTargetTestWorld) OnlinePlayerCount() int                         
 func (w *attackTargetTestWorld) IsLoggedIn(int) bool                                  { return false }
 func (w *attackTargetTestWorld) AddLoggedInAccount(int)                               {}
 func (w *attackTargetTestWorld) GetOnlinePlayers() any                                { return nil }
+func (w *attackTargetTestWorld) GetOnlineUnguildedPlayerCount() int                   { return 0 }
 func (w *attackTargetTestWorld) WarpPlayer(int, int, int, int, int) any               { return nil }
 func (w *attackTargetTestWorld) GetPendingWarp(int, int) (int, int, int, bool)        { return 0, 0, 0, false }
 func (w *attackTargetTestWorld) SetPendingWarp(int, int, int, int, int)               {}

@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"strings"
 
+	"github.com/avdoseferovic/geoserv/internal/deep"
 	"github.com/avdoseferovic/geoserv/internal/formula"
 	"github.com/avdoseferovic/geoserv/internal/player"
 	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
@@ -19,6 +21,7 @@ func init() {
 	player.Register(eonet.PacketFamily_Item, eonet.PacketAction_Drop, handleItemDrop)
 	player.Register(eonet.PacketFamily_Item, eonet.PacketAction_Junk, handleItemJunk)
 	player.Register(eonet.PacketFamily_Item, eonet.PacketAction_Use, handleItemUse)
+	player.Register(eonet.PacketFamily_Item, eonet.PacketAction_Report, handleItemReport)
 }
 
 // handleItemGet picks up a ground item.
@@ -244,6 +247,55 @@ func handleItemUse(ctx context.Context, p *player.Player, reader *player.EoReade
 	reply.Weight = eonet.Weight{Current: p.Weight, Max: p.MaxWeight}
 
 	return p.Bus.SendPacket(reply)
+}
+
+func handleItemReport(ctx context.Context, p *player.Player, reader *player.EoReader) error {
+	if p.State != player.StateInGame || p.CharacterID == nil {
+		return nil
+	}
+
+	pkt, err := deep.DeserializeItemReport(reader)
+	if err != nil {
+		slog.Error("failed to deserialize item report", "id", p.ID, "err", err)
+		return nil
+	}
+	if p.Inventory[pkt.ItemID] <= 0 {
+		return nil
+	}
+
+	item := pubdata.GetItem(pkt.ItemID)
+	if item == nil || item.Type != eopub.Item_Reserved28 {
+		return nil
+	}
+
+	title := strings.TrimSpace(pkt.Title)
+	if maxLen := p.Cfg.Character.MaxTitleLength; maxLen > 0 && len(title) > maxLen {
+		return nil
+	}
+
+	if err := p.DB.Execute(ctx, `UPDATE characters SET title = ? WHERE id = ?`, title, *p.CharacterID); err != nil {
+		return nil
+	}
+	p.Title = title
+
+	infinite := false
+	for _, id := range p.Cfg.Items.InfiniteUseItems {
+		if id == pkt.ItemID {
+			infinite = true
+			break
+		}
+	}
+	if !infinite {
+		p.RemoveItem(pkt.ItemID, 1)
+	}
+
+	p.CalculateStats()
+
+	return p.Bus.SendPacket(&server.ItemReplyServerPacket{
+		ItemType: item.Type,
+		UsedItem: eonet.Item{Id: pkt.ItemID, Amount: p.Inventory[pkt.ItemID]},
+		Weight:   eonet.Weight{Current: p.Weight, Max: p.MaxWeight},
+	})
 }
 
 func isProtectedItem(p *player.Player, itemID int) bool {

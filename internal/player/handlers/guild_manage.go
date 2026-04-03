@@ -76,7 +76,7 @@ func handleGuildRank(ctx context.Context, p *player.Player, reader *player.EoRea
 		return p.Bus.SendPacket(&server.GuildReplyServerPacket{ReplyCode: server.GuildReply_RankingLeader})
 	}
 	ranks, _ := guild.LoadRanks(ctx, p.DB, info.ID)
-	norm := guild.NormalizeRanks(ranks)
+	norm := guild.NormalizeRanks(p.Cfg.Guild, ranks)
 	idx := pkt.Rank - 1
 	if idx < 0 || idx >= len(norm) {
 		return nil
@@ -177,7 +177,7 @@ func handleGuildAgree(ctx context.Context, p *player.Player, reader *player.EoRe
 		if data == nil {
 			return nil
 		}
-		ranks := guild.NormalizeRanks(data.Ranks)
+		ranks := guild.NormalizeRanks(p.Cfg.Guild, data.Ranks)
 		if !guild.ValidateRanks(p.Cfg.Guild.MaxRankLength, ranks) {
 			return nil
 		}

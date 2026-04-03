@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 const defaultAccountDelayTimeMinutes = 15
 
@@ -67,6 +70,10 @@ type SMTP struct {
 	Port        int    `yaml:"port"`
 	Username    string `yaml:"username"`
 	Password    string `yaml:"password"`
+}
+
+func (s SMTP) Address() string {
+	return s.Host + ":" + strconv.Itoa(s.Port)
 }
 
 type NewCharacter struct {

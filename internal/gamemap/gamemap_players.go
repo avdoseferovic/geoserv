@@ -137,6 +137,7 @@ func (m *GameMap) GetOnlinePlayers() []OnlinePlayerInfo {
 	for _, ch := range m.players {
 		result = append(result, OnlinePlayerInfo{
 			Name:     ch.Name,
+			Title:    ch.Title,
 			Level:    ch.Level,
 			Gender:   ch.Gender,
 			Admin:    ch.Admin,
