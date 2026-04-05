@@ -1,0 +1,19 @@
+{{define "pagination"}}
+<div class="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-6 mt-4 sm:mt-0">
+  <div class="flex flex-1 justify-between items-center">
+    {{if .HasPrev}}
+      <button hx-get="?page={{.PrevPage}}&q={{.Query}}" hx-target="#main-content" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">Previous</button>
+    {{else}}
+      <button disabled class="relative inline-flex items-center rounded-md border border-gray-200 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">Previous</button>
+    {{end}}
+    
+    <span class="text-sm text-gray-700">Page <span class="font-bold">{{.Page}}</span></span>
+
+    {{if .HasNext}}
+      <button hx-get="?page={{.NextPage}}&q={{.Query}}" hx-target="#main-content" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">Next</button>
+    {{else}}
+      <button disabled class="relative inline-flex items-center rounded-md border border-gray-200 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">Next</button>
+    {{end}}
+  </div>
+</div>
+{{end}}

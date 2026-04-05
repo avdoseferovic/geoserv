@@ -1,0 +1,71 @@
+{{define "talk_edit"}}
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm p-4 overflow-y-auto">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-full">
+    
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+      <h3 class="text-lg font-bold text-gray-900">
+        {{if eq .NpcID 0}}Create New NPC{{else}}Edit NPC: <span class="text-indigo-600">{{.NpcName}}</span> (NPC ID: {{.NpcID}}){{end}}
+      </h3>
+      <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none transition-colors" onclick="closeModal()">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <form hx-post="/ui/talk/{{.NpcID}}" {{if ne .NpcID 0}}hx-target="#talk-row-{{.NpcID}}" hx-swap="outerHTML"{{else}}hx-target="#main-content" hx-swap="innerHTML"{{end}} class="flex-1 overflow-y-auto">
+      <div class="px-6 py-4 space-y-5">
+        
+        {{if eq .NpcID 0}}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">NPC ID</label>
+            <input type="number" name="new_id" value="0" class="w-full sm:w-1/3 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none" data-lookup="npc" required>
+        </div>
+        <hr class="border-gray-200">
+        {{end}}
+
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Talk Rate (%)</label>
+            <input type="number" name="rate" value="{{.Rate}}" min="0" max="100" class="w-full sm:w-1/3 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
+            <p class="text-xs text-gray-500 mt-1">Percentage chance for the NPC to talk when idle.</p>
+        </div>
+
+        <hr class="border-gray-200">
+
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-2">Messages</label>
+          <div id="messages-list" class="space-y-2">
+            {{range .Messages}}
+            <div class="flex items-center gap-2">
+                <input type="text" name="messages" value="{{.}}" class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-md border border-red-100 hover:bg-red-100 transition-colors text-sm font-medium">Del</button>
+            </div>
+            {{end}}
+          </div>
+          
+          <button type="button" onclick="addTalkMsg()" class="mt-4 flex items-center justify-center w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-colors bg-gray-50 hover:bg-indigo-50">
+            + Add Message
+          </button>
+        </div>
+      </div>
+      
+      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+        <button type="button" class="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-colors" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors">Save Changes</button>
+      </div>
+    </form>
+    
+    <script>
+        function addTalkMsg() {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="text" name="messages" value="" class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-md border border-red-100 hover:bg-red-100 transition-colors text-sm font-medium">Del</button>
+            `;
+            document.getElementById('messages-list').appendChild(div); if(typeof initLookups === 'function') setTimeout(initLookups, 50);
+        }
+    </script>
+  </div>
+</div>
+{{end}}

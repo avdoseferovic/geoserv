@@ -61,7 +61,7 @@ func LoadAll() error {
 	}
 	slog.Info("ECF loaded", "classes", len(ClassDB.Classes))
 
-	DropDB, err = loadDropFile("data/data/dat001.edf")
+	DropDB, err = loadDropFile("data/pub/dtd001.edf")
 	if err != nil {
 		slog.Warn("failed to load drop file (non-fatal)", "err", err)
 		DropDB = &eopubsrv.DropFile{}
@@ -69,7 +69,7 @@ func LoadAll() error {
 		slog.Info("EDF loaded", "npc_drop_tables", len(DropDB.Npcs))
 	}
 
-	TalkDB, err = loadTalkFile("data/data/dat001.etf")
+	TalkDB, err = loadTalkFile("data/pub/ttd001.etf")
 	if err != nil {
 		slog.Warn("failed to load talk file (non-fatal)", "err", err)
 		TalkDB = &eopubsrv.TalkFile{}

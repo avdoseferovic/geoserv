@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEOSERV Control Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --frame: #243140;
+  --frame2: #314255;
+  --frame3: #40566d;
+  --frame-soft: #edf2f7;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-strong: rgba(255, 255, 255, 0.98);
+  --surface-soft: rgba(248, 250, 252, 0.96);
+  --parch: #ffffff;
+  --parch2: #f8fafc;
+  --parch3: #ffffff;
+  --parch-dark: #d7dee8;
+  --parch-shadow: #c4ceda;
+  --wood: #e8edf3;
+  --wood2: #f1f5f9;
+  --wood3: #dce5ef;
+  --wood4: #cbd6e2;
+  --bevel-light: #eef3f8;
+  --bevel-dark: #d7dee8;
+  --nail: #9aa9bb;
+  --ink: #1f2937;
+  --ink2: #4b5563;
+  --ink3: #6b7280;
+  --cream: #ffffff;
+  --cream2: #d7e0ea;
+  --cream3: #94a3b8;
+  --gold: #3b82f6;
+  --gold-bright: #60a5fa;
+  --gold-soft: #dbeafe;
+  --gold-glow: rgba(59, 130, 246, 0.14);
+  --ember: #d36443;
+  --ember-dim: #873622;
+  --sage: #6eb16d;
+  --sage-dim: #365f35;
+  --sky: #8fb8c8;
+  --radius: 6px;
+  --radius-lg: 16px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.36);
+  --inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --inset-deep: inset 0 2px 8px rgba(0, 0, 0, 0.25);
+  --font-display: 'Source Sans 3', 'Source Sans Pro', 'Segoe UI', Arial, sans-serif;
+  --font-body: 'Source Sans 3', 'Source Sans Pro', 'Segoe UI', Arial, sans-serif;
+  --t: 180ms ease;
+  --grain: none;
+  --paper: none;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: var(--frame); }
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  background: #f3f4f6;
+}
+a, button, input { font: inherit; }
+button { border: none; background: none; }
+.app-shell { min-height: 100vh; display: flex; position: relative; }
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(8, 5, 3, 0.64);
+  opacity: 0; pointer-events: none; transition: opacity var(--t);
+  z-index: 15;
+}
+body.nav-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+.sidebar {
+  width: 272px;
+  background: var(--frame);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.04), var(--shadow-lg);
+  z-index: 20;
+}
+.sidebar-brand {
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid rgba(242, 201, 106, 0.14);
+  text-align: left;
+}
+.sidebar-brand h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 4px;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+.sidebar-brand span {
+  display: block;
+  font-size: 11px;
+  color: var(--cream3);
+  margin-top: 6px;
+  letter-spacing: 1.7px;
+  text-transform: uppercase;
+}
+.sidebar-status {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+.sidebar-panel {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+.sidebar-panel-label {
+  font-family: var(--font-display);
+  color: var(--cream3);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.sidebar-panel-value {
+  margin-top: 6px;
+  color: var(--cream);
+  font-size: 15px;
+}
+.sidebar-nav { padding: 12px 14px 16px; flex: 1; }
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  color: var(--cream2);
+  text-decoration: none;
+  font-size: 16px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  transition: transform var(--t), background var(--t), color var(--t), border-color var(--t), box-shadow var(--t);
+}
+.sidebar-nav a:hover {
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.sidebar-nav a.active {
+  color: #ffffff;
+  background: rgba(96, 165, 250, 0.16);
+  border-color: rgba(96, 165, 250, 0.26);
+  box-shadow: none;
+  transform: none;
+}
+.sidebar-nav a .nav-icon { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; }
+.sidebar-nav a.active .nav-icon { opacity: 0.9; }
+.sidebar-nav .nav-section {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cream3);
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  padding: 20px 14px 8px;
+}
+.sidebar-footer {
+  padding: 18px 22px 24px;
+  border-top: 1px solid rgba(242, 201, 106, 0.12);
+  font-size: 12px;
+  color: var(--cream3);
+}
+.sidebar-footer p + p { margin-top: 8px; }
+
+.main-shell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 28px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e5e7eb;
+}
+.topbar-main { min-width: 0; flex: 1; }
+.topbar-kicker {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--cream3);
+}
+.topbar-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.topbar h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--ink);
+  letter-spacing: 1px;
+}
+.topbar-subtitle {
+  max-width: 72ch;
+  color: var(--ink2);
+  font-size: 16px;
+}
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.status-pill, .meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #d7dee8;
+  background: #ffffff;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+.status-pill strong, .meta-pill strong { color: var(--ink); font-weight: 600; }
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--sage);
+  box-shadow: 0 0 0 4px rgba(110, 177, 109, 0.16);
+}
+.status-pill.warning .status-dot {
+  background: var(--ember);
+  box-shadow: 0 0 0 4px rgba(211, 100, 67, 0.18);
+}
+.mobile-nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #d7dee8;
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mobile-nav-toggle svg { width: 18px; height: 18px; }
+
+.main {
+  flex: 1;
+  padding: 26px 28px 40px;
+  background: #f3f4f6;
+}
+.page { display: none; animation: fadeIn 220ms ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.page-hero {
+  padding: 28px;
+  margin-bottom: 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e5e7eb;
+}
+.page-hero.kpi-hero {
+  display: block;
+}
+.page-eyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.page-hero h1, .page-hero h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 0.8px;
+  margin-top: 8px;
+}
+.page-hero p {
+  margin-top: 10px;
+  max-width: 70ch;
+  color: var(--ink2);
+  font-size: 17px;
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.hero-panel {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+.hero-panel-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cream3);
+}
+.hero-panel-value {
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 22px;
+  font-family: var(--font-display);
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.stat-card {
+  position: relative;
+  padding: 18px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+.stat-card::after { display: none; }
+.stat-card .label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.stat-card .value {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: 31px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 8px;
+  line-height: 1;
+  text-shadow: none;
+}
+.stat-card.highlight .value { color: var(--gold); }
+.stat-card.uptime .value { font-size: 18px; color: var(--ink2); }
+
+.panel-surface {
+  border-radius: 20px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform var(--t), background var(--t), border-color var(--t), box-shadow var(--t), color var(--t);
+  white-space: nowrap;
+  min-height: 40px;
+  box-shadow: none;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  background: #f8fafc;
+}
+.btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.btn-primary {
+  background: var(--gold);
+  color: #ffffff;
+  border-color: var(--gold);
+}
+.btn-primary:hover { background: #2563eb; }
+.btn-danger {
+  background: #ffffff;
+  color: var(--ember-dim);
+  border-color: #f1c8bc;
+}
+.btn-danger:hover {
+  background: #fff1ec;
+  color: var(--ember-dim);
+}
+.btn-secondary {
+  background: #ffffff;
+  color: var(--ink);
+  border-color: #d7dee8;
+  box-shadow: none;
+}
+.btn-sm {
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.toolbar {
+  position: sticky;
+  top: 86px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(6px);
+}
+.toolbar-main, .toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.toolbar-main { min-width: 0; }
+.toolbar-actions { justify-content: flex-end; }
+.toolbar-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: var(--ink2);
+  font-size: 14px;
+}
+.dirty-badge {
+  display: none;
+  font-size: 13px;
+  color: var(--ember-dim);
+  background: rgba(211, 100, 67, 0.1);
+  border: 1px solid rgba(211, 100, 67, 0.22);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.dirty-badge.visible { display: inline-flex; }
+
+.search-wrap {
+  position: relative;
+  min-width: 240px;
+  flex: 1;
+}
+.search-wrap::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  border: 2px solid var(--ink3);
+  border-radius: 999px;
+  opacity: 0.7;
+}
+.search-wrap::after {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: calc(50% + 5px);
+  width: 7px;
+  height: 2px;
+  background: var(--ink3);
+  transform: rotate(45deg);
+  border-radius: 999px;
+  opacity: 0.7;
+}
+.search-input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 14px;
+  color: var(--ink);
+  font-size: 15px;
+  outline: none;
+  transition: border-color var(--t), box-shadow var(--t), background var(--t);
+  box-shadow: var(--inset);
+}
+.search-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-glow);
+  background: #ffffff;
+}
+.search-input::placeholder { color: var(--ink3); }
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+.pager button {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--t), opacity var(--t), transform var(--t);
+}
+.pager button:hover:not(:disabled) { background: #f8fafc; transform: translateY(-1px); }
+.pager button:disabled { opacity: 0.3; cursor: default; }
+.record-count { font-size: 14px; color: var(--ink2); }
+
+.editor-content {
+  display: grid;
+  gap: 14px;
+}
+.summary-grid {
+  display: grid;
+  gap: 14px;
+}
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 52px 20px;
+  color: var(--ink3);
+  border: 1px dashed #d7dee8;
+  border-radius: 18px;
+  background: #ffffff;
+}
+.loading-state p, .empty-state p { font-size: 18px; }
+.empty-state .empty-icon, .loading-state .empty-icon { font-size: 42px; margin-bottom: 12px; opacity: 0.4; }
+
+.record-card {
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+.record-card:hover { box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08); }
+.record-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+.record-card-headings {
+  flex: 1;
+  min-width: 0;
+}
+.record-card-header .card-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.4px;
+  text-shadow: none;
+}
+.record-card-header .card-subtitle {
+  margin-top: 4px;
+  color: var(--ink2);
+  font-size: 14px;
+  opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.record-card-header .card-badge {
+  font-size: 12px;
+  color: var(--ink2);
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d7dee8;
+}
+.record-card-body {
+  padding: 18px 20px;
+  background: #ffffff;
+}
+.record-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.record-card-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--ink2);
+  font-size: 15px;
+}
+.record-card-meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.field-grid.compact { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.field-group {
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  margin-top: 14px;
+  box-shadow: var(--inset);
+}
+.field-group-title {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+.field input[type="text"], .field input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  background: #f8f1df;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 16px;
+  transition: border-color var(--t), box-shadow var(--t), background var(--t);
+  outline: none;
+  box-shadow: var(--inset);
+}
+.field input:focus {
+  border-color: var(--gold);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px var(--gold-glow);
+}
+.field input[type="number"] { font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.field input[type="number"]::-webkit-inner-spin-button { opacity: 0; }
+.field input[type="number"]:hover::-webkit-inner-spin-button { opacity: 1; }
+.field-hint {
+  font-size: 15px;
+  color: var(--ink2);
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  line-height: 1.6;
+}
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  padding-top: 4px;
+}
+.toggle-track {
+  width: 42px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 999px;
+  position: relative;
+  transition: background var(--t);
+  flex-shrink: 0;
+  box-shadow: var(--inset);
+}
+.toggle-track::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  background: var(--ink3);
+  border-radius: 999px;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: all var(--t);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+.toggle.on .toggle-track { background: var(--sage-dim); }
+.toggle.on .toggle-track::after { left: 21px; background: var(--sage); }
+.toggle-label { font-size: 15px; color: var(--ink2); }
+
+.sub-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+.sub-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.sub-section-title {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.table-scroll {
+  overflow-x: auto;
+  border-radius: 18px;
+  box-shadow: var(--inset);
+}
+.sub-table {
+  min-width: 100%;
+  width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+}
+.sub-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.sub-table td {
+  padding: 4px;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: middle;
+}
+.sub-table tr:last-child td { border-bottom: none; }
+.sub-table td input {
+  width: 100%;
+  min-width: 88px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 16px;
+  transition: background var(--t), border-color var(--t), box-shadow var(--t);
+  outline: none;
+}
+.sub-table td input:hover { background: #f8fafc; border-color: #d7dee8; }
+.sub-table td input:focus { border-color: var(--gold); background: #ffffff; box-shadow: 0 0 0 3px var(--gold-glow); }
+.sub-table td input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.sub-table td input[type="number"]::-webkit-inner-spin-button { opacity: 0; }
+.sub-table td .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+/* ═══ Autocomplete ═══ */
+.ac-wrap { position: relative; }
+.ac-wrap input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 16px;
+  outline: none;
+  transition: all var(--t);
+  box-shadow: var(--inset);
+}
+.ac-wrap input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.ac-list {
+  position: absolute; top: 100%; left: 0; right: 0;
+  max-height: 240px; overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  margin-top: 6px;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+  display: none;
+}
+.ac-list.open { display: block; }
+.ac-list .ac-item { padding: 9px 12px; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eef2f7; color: var(--ink); }
+.ac-list .ac-item:last-child { border-bottom: none; }
+.ac-list .ac-item:hover, .ac-list .ac-item.focused { background: var(--gold-glow); }
+.ac-list .ac-item .ac-name { flex: 1; }
+.ac-list .ac-item .ac-tag {
+  font-family: var(--font-display); font-size: 8px; font-weight: 700;
+  padding: 2px 6px; border-radius: 999px;
+  background: #eff6ff; color: #1d4ed8;
+  white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ac-list .ac-item .ac-id { color: var(--ink3); font-size: 11px; white-space: nowrap; }
+.ac-selected { font-size: 13px; color: var(--ink3); margin-top: 4px; font-style: italic; }
+
+/* ═══ Empty & toast ═══ */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column-reverse; gap: 8px; }
+.toast {
+  padding: 12px 16px;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 16px; color: #ffffff;
+  font-size: 15px; box-shadow: var(--shadow-lg);
+  animation: toastIn 250ms ease, toastOut 250ms ease 2700ms forwards;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.success { border-color: var(--sage-dim); }
+.toast.success::before { content: '\2713'; color: var(--sage); font-weight: bold; }
+.toast.error { border-color: var(--ember-dim); }
+.toast.error::before { content: '\2717'; color: var(--ember); font-weight: bold; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+.dialog-root {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1200;
+}
+.dialog-root.open { display: flex; }
+.dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.48);
+}
+.dialog {
+  position: relative;
+  width: min(960px, 100%);
+  max-height: min(88vh, 920px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+}
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.dialog-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--ink);
+}
+.dialog-subtitle {
+  margin-top: 4px;
+  color: var(--ink2);
+  font-size: 15px;
+}
+.dialog-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.dialog-body {
+  overflow: auto;
+  padding: 22px;
+  background: #ffffff;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 22px 22px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+kbd { display: inline-block; padding: 2px 6px; font-size: 10px; font-family: var(--font-display); letter-spacing: 0.5px; background: var(--frame2); border: 1px solid var(--wood); border-radius: 6px; color: var(--cream3); line-height: 1.5; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--frame); }
+::-webkit-scrollbar-thumb { background: var(--wood3); border-radius: 2px; border: 1px solid var(--frame); }
+::-webkit-scrollbar-thumb:hover { background: var(--bevel-light); }
+
+@media (max-width: 1100px) {
+  .page-hero.kpi-hero, .toolbar { grid-template-columns: 1fr; }
+  .toolbar-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 920px) {
+  .mobile-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform var(--t);
+    height: 100vh;
+  }
+  body.nav-open .sidebar { transform: translateX(0); }
+  .topbar { padding: 16px 18px; }
+  .main { padding: 18px 16px 28px; }
+  .topbar h2 { font-size: 24px; }
+  .page-hero { padding: 22px 18px; border-radius: 20px; }
+  .page-hero h1, .page-hero h2 { font-size: 26px; }
+}
+
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  .topbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar-title-row { gap: 8px; }
+  .topbar-meta { width: 100%; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .toolbar {
+    top: 74px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .search-wrap { min-width: 100%; }
+  .record-card-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .record-card-header .card-badge { order: 3; }
+  .record-card-actions { width: 100%; }
+  .record-card-body { padding: 16px; }
+  .sub-section-header { align-items: flex-start; }
+  .toast-container { left: 16px; right: 16px; bottom: 16px; }
+  .dialog-root { padding: 12px; }
+  .dialog { max-height: 94vh; border-radius: 18px; }
+  .dialog-header, .dialog-body, .dialog-footer { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <h1>GEOSERV</h1>
+      <span>World Data Console</span>
+      <div class="sidebar-status">
+        <div class="sidebar-panel">
+          <div class="sidebar-panel-label">Current View</div>
+          <div class="sidebar-panel-value" id="sidebar-current-view">Dashboard</div>
+        </div>
+        <div class="sidebar-panel">
+          <div class="sidebar-panel-label">Workspace Status</div>
+          <div class="sidebar-panel-value" id="sidebar-dirty-status">All changes saved</div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <a href="#dashboard" class="active" data-page="dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section">Server Data</div>
+      <a href="#drops" data-page="drops"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/></svg>NPC Drops</a>
+      <a href="#talk" data-page="talk"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>NPC Talk</a>
+      <a href="#inns" data-page="inns"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/></svg>Inns</a>
+      <a href="#shops" data-page="shops"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 7v13a1 1 0 001 1h16a1 1 0 001-1V7l-3-5z"/><path d="M3 7h18"/><path d="M16 11a4 4 0 01-8 0"/></svg>Shops</a>
+      <a href="#masters" data-page="masters"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Skill Masters</a>
+    </div>
+    <div class="sidebar-footer">
+      <p>Fast save: <kbd>Ctrl</kbd> + <kbd>S</kbd></p>
+      <p>Use search to narrow records before editing page slices.</p>
+    </div>
+  </nav>
+
+  <div class="main-shell">
+    <header class="topbar">
+      <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+      </button>
+      <div class="topbar-main">
+        <div class="topbar-kicker">Admin Panel</div>
+        <div class="topbar-title-row">
+          <h2 id="topbar-title">Dashboard</h2>
+          <span class="meta-pill"><strong id="topbar-filetag">Overview</strong></span>
+        </div>
+        <div class="topbar-subtitle" id="topbar-subtitle">Monitor server data, check live counts, and jump directly into editable content tables.</div>
+      </div>
+      <div class="topbar-meta">
+        <span class="status-pill" id="workspace-status-pill"><span class="status-dot"></span><strong id="workspace-status-text">All changes saved</strong></span>
+        <span class="meta-pill">Shortcut <strong>Ctrl+S</strong></span>
+      </div>
+    </header>
+
+    <div class="main">
+      <div id="dashboard" class="page active">
+        <section class="page-hero kpi-hero">
+          <div class="page-eyebrow">Overview</div>
+          <h1>World data at a glance</h1>
+          <p>Use the dashboard for a quick health check, then jump into the editors for the data file you want to change.</p>
+          <div class="hero-meta">
+            <span class="meta-pill"><strong id="dashboard-online-meta">0</strong> online players</span>
+            <span class="meta-pill"><strong id="dashboard-uptime-meta">0s</strong> uptime</span>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="button" data-jump="drops">Open Drops</button>
+            <button class="btn btn-secondary" type="button" data-jump="shops">Open Shops</button>
+          </div>
+        </section>
+        <div class="panel-surface">
+          <div class="stats-grid" id="stats-grid"></div>
+        </div>
+      </div>
+
+      <div id="drops" class="page">
+        <section class="page-hero">
+          <div class="page-eyebrow">EDF</div>
+          <h2>NPC Drops</h2>
+          <p>Balance drop tables with clearer row controls, item lookup, and save-state visibility while preserving the game’s top-to-bottom roll behavior.</p>
+        </section>
+        <div class="toolbar" id="drops-toolbar"></div>
+        <div class="editor-content" id="drops-content"></div>
+      </div>
+
+      <div id="talk" class="page">
+        <section class="page-hero">
+          <div class="page-eyebrow">ETF</div>
+          <h2>NPC Talk</h2>
+          <p>Scan rates and dialogue quickly, then edit messages inline without losing track of which NPC each line belongs to.</p>
+        </section>
+        <div class="toolbar" id="talk-toolbar"></div>
+        <div class="editor-content" id="talk-content"></div>
+      </div>
+
+      <div id="inns" class="page">
+        <section class="page-hero">
+          <div class="page-eyebrow">EID</div>
+          <h2>Inns and Citizenship</h2>
+          <p>Keep spawn routing, alternate spawns, and citizenship questions grouped into a single readable edit flow.</p>
+        </section>
+        <div class="toolbar" id="inns-toolbar"></div>
+        <div class="editor-content" id="inns-content"></div>
+      </div>
+
+      <div id="shops" class="page">
+        <section class="page-hero">
+          <div class="page-eyebrow">ESF</div>
+          <h2>Shops</h2>
+          <p>Manage vendor trades and crafting recipes with better table scrolling, clearer badges, and less cramped controls.</p>
+        </section>
+        <div class="toolbar" id="shops-toolbar"></div>
+        <div class="editor-content" id="shops-content"></div>
+      </div>
+
+      <div id="masters" class="page">
+        <section class="page-hero">
+          <div class="page-eyebrow">EMF</div>
+          <h2>Skill Masters</h2>
+          <p>Edit skill training requirements in a denser but more readable layout, with pagination and save state always visible.</p>
+        </section>
+        <div class="toolbar" id="masters-toolbar"></div>
+        <div class="editor-content" id="masters-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+<div class="dialog-root" id="dialog-root"></div>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════════════════
+   Core helpers
+   ════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const PAGE_META = {
+  dashboard: {
+    title: 'Dashboard',
+    filetag: 'Overview',
+    subtitle: 'Monitor server data, check live counts, and jump directly into editable content tables.'
+  },
+  drops: {
+    title: 'NPC Drops',
+    filetag: 'EDF',
+    subtitle: 'Balance drop tables with searchable NPC and item lookups plus page-aware saves.'
+  },
+  talk: {
+    title: 'NPC Talk',
+    filetag: 'ETF',
+    subtitle: 'Edit NPC speech rates and dialogue pools without losing track of page state.'
+  },
+  inns: {
+    title: 'Inns',
+    filetag: 'EID',
+    subtitle: 'Keep spawn points, sleep points, and citizenship questions aligned in one flow.'
+  },
+  shops: {
+    title: 'Shops',
+    filetag: 'ESF',
+    subtitle: 'Review trades and crafts with clearer tables, badges, and mobile overflow handling.'
+  },
+  masters: {
+    title: 'Skill Masters',
+    filetag: 'EMF',
+    subtitle: 'Adjust skill training data with stronger hierarchy and persistent save feedback.'
+  }
+};
+
+const EVENT_NAMES = new Set(['click','dblclick','input','change','focus','blur','keydown','keyup','submit','mousedown','mouseup','mouseover','mouseout']);
+function ce(tag, attrs, ...ch) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (EVENT_NAMES.has(k) && typeof v === 'function') el.addEventListener(k, v);
+    else el.setAttribute(k, v);
+  }
+  for (const c of ch.flat()) if (c != null) el.append(typeof c === 'object' ? c : String(c));
+  return el;
+}
+
+function toast(msg, type) {
+  const t = ce('div', { class: 'toast ' + type }, msg);
+  $('#toasts').append(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch('/api/' + path, opts);
+  if (!r.ok) {
+    let msg = 'Request failed';
+    try {
+      const body = await r.json();
+      if (body && body.error) msg = body.error;
+    } catch (_) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+/* ════════════════════════════════════════════
+   Navigation
+   ════════════════════════════════════════════ */
+let currentPage = 'dashboard';
+function updateChrome() {
+  const meta = PAGE_META[currentPage] || PAGE_META.dashboard;
+  $('#topbar-title').textContent = meta.title;
+  $('#topbar-filetag').textContent = meta.filetag;
+  $('#topbar-subtitle').textContent = meta.subtitle;
+  $('#sidebar-current-view').textContent = meta.title;
+}
+
+function updateWorkspaceStatus() {
+  const dirtyEditors = Object.values(editors).filter(ed => ed.dirty);
+  const dirtyCount = dirtyEditors.length;
+  const text = dirtyCount ? `${dirtyCount} section${dirtyCount === 1 ? '' : 's'} need saving` : 'All changes saved';
+  $('#workspace-status-text').textContent = text;
+  $('#sidebar-dirty-status').textContent = text;
+  $('#workspace-status-pill').classList.toggle('warning', dirtyCount > 0);
+}
+
+function closeSidebar() { document.body.classList.remove('nav-open'); }
+function openSidebar() { document.body.classList.add('nav-open'); }
+
+function showPage(page, pushHash) {
+  if (!PAGE_META[page]) page = 'dashboard';
+  $$('.sidebar-nav a').forEach(x => x.classList.remove('active'));
+  $$('.page').forEach(x => x.classList.remove('active'));
+  $(`.sidebar-nav a[data-page="${page}"]`)?.classList.add('active');
+  currentPage = page;
+  $('#' + currentPage).classList.add('active');
+  updateChrome();
+  closeSidebar();
+  if (pushHash) history.replaceState(null, '', '#' + currentPage);
+  if (currentPage === 'dashboard') loadDashboard();
+  else editors[currentPage]?.load();
+}
+
+$$('.sidebar-nav a').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  showPage(a.dataset.page, true);
+}));
+
+$('#mobile-nav-toggle').addEventListener('click', () => {
+  document.body.classList.contains('nav-open') ? closeSidebar() : openSidebar();
+});
+$('#sidebar-backdrop').addEventListener('click', closeSidebar);
+window.addEventListener('hashchange', () => showPage(location.hash.slice(1), false));
+$$('[data-jump]').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.jump, true)));
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (currentPage !== 'dashboard') editors[currentPage]?.save();
+  }
+  if (e.key === 'Escape') {
+    if (activeDialog) closeDialog();
+    else closeSidebar();
+  }
+});
+
+/* ════════════════════════════════════════════
+   Dashboard
+   ════════════════════════════════════════════ */
+async function loadDashboard() {
+  try {
+    const s = await api('GET', 'stats');
+    const g = $('#stats-grid');
+    g.innerHTML = '';
+    $('#dashboard-online-meta').textContent = String(s.online_players ?? 0);
+    $('#dashboard-uptime-meta').textContent = String(s.uptime ?? '0s');
+    [
+      ['Uptime', s.uptime, 'uptime'],
+      ['Online Players', s.online_players, 'highlight'],
+      ['Items (EIF)', s.items, ''],
+      ['NPCs (ENF)', s.npcs, ''],
+      ['Spells (ESF)', s.spells, ''],
+      ['Classes (ECF)', s.classes, ''],
+      ['Drop Tables', s.drop_tables, ''],
+      ['Talk Tables', s.talk_tables, ''],
+      ['Inns', s.inns, ''],
+      ['Shops', s.shops, ''],
+      ['Skill Masters', s.skill_masters, ''],
+    ].forEach(([l, v, c]) => g.append(
+      ce('div', { class: 'stat-card ' + c }, ce('div', { class: 'label' }, l), ce('div', { class: 'value' }, String(v ?? 0)))
+    ));
+  } catch (e) {
+    $('#stats-grid').innerHTML = '';
+    $('#stats-grid').append(ce('div', { class: 'loading-state' }, ce('div', { class: 'empty-icon' }, '!'), ce('p', null, 'Could not load dashboard stats.')));
+    toast('Stats load failed: ' + e.message, 'error');
+  }
+}
+setInterval(() => { if (currentPage === 'dashboard') loadDashboard(); }, 30000);
+
+/* ════════════════════════════════════════════
+   Generic paginated editor (server-side pagination)
+
+   API contract:
+     GET  /api/{page}?page=0&size=20&q=search → { items: [...], total: N }
+     PUT  /api/{page}  body: [...]             → { status: "ok" }
+   ════════════════════════════════════════════ */
+const PAGE_SIZE = 20;
+const editors = {};
+let activeDialog = null;
+
+function closeDialog() {
+  if (!activeDialog) return;
+  const root = $('#dialog-root');
+  root.classList.remove('open');
+  root.innerHTML = '';
+  activeDialog = null;
+  document.body.style.overflow = '';
+}
+
+function openDialog({ title, subtitle, body, onSave }) {
+  closeDialog();
+  const root = $('#dialog-root');
+  const dialog = ce('div', null,
+    ce('div', { class: 'dialog-backdrop', click: closeDialog }),
+    ce('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' },
+      ce('div', { class: 'dialog-header' },
+        ce('div', null,
+          ce('div', { class: 'dialog-title' }, title),
+          subtitle ? ce('div', { class: 'dialog-subtitle' }, subtitle) : ''
+        ),
+        ce('button', { class: 'btn dialog-close', type: 'button', click: closeDialog }, '\u2715')
+      ),
+      ce('div', { class: 'dialog-body' }, body),
+      ce('div', { class: 'dialog-footer' },
+        ce('button', { class: 'btn btn-secondary', type: 'button', click: closeDialog }, 'Cancel'),
+        ce('button', { class: 'btn btn-primary', type: 'button', click: () => {
+          onSave();
+          closeDialog();
+        } }, 'Apply changes')
+      )
+    )
+  );
+  root.innerHTML = '';
+  root.classList.add('open');
+  root.append(dialog);
+  activeDialog = dialog;
+  document.body.style.overflow = 'hidden';
+  const firstInput = dialog.querySelector('input');
+  if (firstInput) setTimeout(() => firstInput.focus(), 0);
+}
+
+function makeSummaryCard({ title, subtitle, badge, meta, onEdit, onDelete, isNew }) {
+  const card = ce('div', { class: 'record-card' });
+  card.append(
+    ce('div', { class: 'record-card-header' },
+      ce('div', { class: 'record-card-headings' },
+        ce('div', { class: 'card-title' }, title),
+        subtitle ? ce('div', { class: 'card-subtitle' }, subtitle) : ''
+      ),
+      badge != null ? ce('span', { class: 'card-badge' }, String(badge)) : '',
+      ce('div', { class: 'record-card-actions' },
+        isNew ? ce('span', { class: 'card-badge' }, 'New') : '',
+        ce('button', { class: 'btn btn-sm', type: 'button', click: onEdit }, 'Edit'),
+        ce('button', { class: 'btn btn-sm btn-danger', type: 'button', click: onDelete }, 'Delete')
+      )
+    )
+  );
+  if (meta && meta.length) {
+    card.append(
+      ce('div', { class: 'record-card-body' },
+        ce('div', { class: 'record-card-meta' }, meta.map(text => ce('span', null, text)))
+      )
+    );
+  }
+  return card;
+}
+
+function createEditor(page, { renderSummary, buildForm, readForm, newItem, apiPath }) {
+  const path = apiPath || page;
+  const ed = { items: [], total: 0, page: 0, query: '', dirty: false, pendingAdds: [], deletedIndices: [], loading: false };
+
+  const toolbar = $(`#${page}-toolbar`);
+  const content = $(`#${page}-content`);
+
+  let searchTimer = null;
+  const searchInput = ce('input', { class: 'search-input', type: 'text', placeholder: 'Search by ID or name\u2026', oninput: () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { ed.query = searchInput.value; ed.page = 0; fetchPage(); }, 250);
+  }});
+  const searchWrap = ce('div', { class: 'search-wrap' }, searchInput);
+  const dirtyBadge = ce('span', { class: 'dirty-badge' }, 'Unsaved changes');
+  const countSpan = ce('span', { class: 'record-count' });
+  const pendingSpan = ce('span', { class: 'toolbar-stat' });
+  const pagerPrev = ce('button', { click: () => { collectVisible(); ed.page--; fetchPage(); } }, '\u25C0');
+  const pagerLabel = ce('span');
+  const pagerNext = ce('button', { click: () => { collectVisible(); ed.page++; fetchPage(); } }, '\u25B6');
+  const pager = ce('div', { class: 'pager' }, pagerPrev, pagerLabel, pagerNext);
+  const addButton = ce('button', { class: 'btn btn-primary', click: () => {
+    const item = newItem();
+    const form = buildForm(item, () => {});
+    openDialog({
+      title: 'Add record',
+      subtitle: 'Create a new entry and apply it to the current unsaved page state.',
+      body: form,
+      onSave: () => {
+        ed.pendingAdds.push(readForm(form));
+        markDirty();
+        renderItems();
+      }
+    });
+  }}, '+ Add record');
+  const saveButton = ce('button', { class: 'btn btn-primary', click: () => ed.save() }, 'Save page');
+
+  toolbar.append(
+    ce('div', { class: 'toolbar-main' }, searchWrap, countSpan, pendingSpan, dirtyBadge),
+    ce('div', { class: 'toolbar-actions' }, addButton, saveButton, pager)
+  );
+
+  function markDirty() {
+    ed.dirty = true;
+    dirtyBadge.classList.add('visible');
+    updateWorkspaceStatus();
+  }
+
+  function updateCounts() {
+    const t = ed.total + ed.pendingAdds.length;
+    const totalPages = Math.max(1, Math.ceil(t / PAGE_SIZE));
+    countSpan.textContent = `${t} total records`;
+    pendingSpan.textContent = ed.dirty
+      ? `${ed.pendingAdds.length} new • ${ed.deletedIndices.length} deleted on save`
+      : 'No unsaved changes';
+    pagerPrev.disabled = ed.page <= 0;
+    pagerNext.disabled = ed.page >= totalPages - 1;
+    pagerLabel.textContent = `Page ${ed.page + 1} / ${totalPages}`;
+    saveButton.textContent = ed.dirty ? 'Save page' : 'Saved';
+  }
+
+  function collectVisible() {}
+
+  function editExisting(index) {
+    const item = ed.items[index];
+    const form = buildForm(item, () => {});
+    openDialog({
+      title: 'Edit record',
+      subtitle: 'Changes stay local until you save this page.',
+      body: form,
+      onSave: () => {
+        ed.items[index] = readForm(form);
+        markDirty();
+        renderItems();
+      }
+    });
+  }
+
+  function editPending(index) {
+    const item = ed.pendingAdds[index];
+    const form = buildForm(item, () => {});
+    openDialog({
+      title: 'Edit new record',
+      subtitle: 'This record will be created when you save the page.',
+      body: form,
+      onSave: () => {
+        ed.pendingAdds[index] = readForm(form);
+        markDirty();
+        renderItems();
+      }
+    });
+  }
+
+  async function fetchPage() {
+    ed.loading = true;
+    content.innerHTML = '';
+    content.append(ce('div', { class: 'loading-state' }, ce('div', { class: 'empty-icon' }, '\u231B'), ce('p', null, 'Loading records\u2026')));
+    try {
+      const params = new URLSearchParams({ page: ed.page, size: PAGE_SIZE });
+      if (ed.query) params.set('q', ed.query);
+      const res = await api('GET', path + '?' + params);
+      ed.items = res.items || [];
+      ed.total = res.total || 0;
+      renderItems();
+    } catch (e) {
+      console.error(e);
+      content.innerHTML = '';
+      content.append(ce('div', { class: 'loading-state' }, ce('div', { class: 'empty-icon' }, '!'), ce('p', null, 'Failed to load records.')));
+      toast('Load failed: ' + e.message, 'error');
+    } finally {
+      ed.loading = false;
+    }
+  }
+
+  function renderItems() {
+    content.innerHTML = '';
+    if (!ed.items.length && !ed.pendingAdds.length) {
+      content.append(ce('div', { class: 'empty-state' }, ce('div', { class: 'empty-icon' }, ed.query ? '\u2315' : '\u2726'), ce('p', null, ed.query ? 'No records match the current search.' : 'No records yet. Create a new one to start editing.')));
+    } else {
+      const list = ce('div', { class: 'summary-grid' });
+      const pageStart = ed.page * PAGE_SIZE;
+      for (let i = 0; i < ed.items.length; i++) {
+        const item = ed.items[i];
+        const globalIdx = pageStart + i;
+        list.append(makeSummaryCard({
+          ...renderSummary(item),
+          onEdit: () => editExisting(i),
+          onDelete: () => {
+          ed.items.splice(i, 1);
+          ed.total--;
+          ed.deletedIndices.push(globalIdx);
+          markDirty();
+          renderItems();
+          }
+        }));
+      }
+      for (let i = 0; i < ed.pendingAdds.length; i++) {
+        const item = ed.pendingAdds[i];
+        list.append(makeSummaryCard({
+          ...renderSummary(item),
+          isNew: true,
+          onEdit: () => editPending(i),
+          onDelete: () => {
+          ed.pendingAdds.splice(i, 1);
+          markDirty();
+          renderItems();
+          }
+        }));
+      }
+      content.append(list);
+    }
+    updateCounts();
+  }
+
+  ed.load = async function() {
+    ed.page = 0;
+    ed.query = '';
+    ed.dirty = false;
+    ed.pendingAdds = [];
+    ed.deletedIndices = [];
+    searchInput.value = '';
+    dirtyBadge.classList.remove('visible');
+    updateWorkspaceStatus();
+    await fetchPage();
+  };
+
+  ed.save = async function() {
+    collectVisible();
+    try {
+      saveButton.textContent = 'Saving\u2026';
+      await api('PATCH', path, {
+        page: ed.page, size: PAGE_SIZE,
+        items: ed.items,
+        added: ed.pendingAdds,
+        deleted: ed.deletedIndices,
+      });
+      ed.dirty = false;
+      ed.pendingAdds = [];
+      ed.deletedIndices = [];
+      dirtyBadge.classList.remove('visible');
+      updateWorkspaceStatus();
+      toast('Saved to disk', 'success');
+      await fetchPage();
+    } catch (e) {
+      toast('Save failed: ' + e.message, 'error');
+    } finally {
+      updateCounts();
+    }
+  };
+
+  editors[page] = ed;
+  updateCounts();
+  return ed;
+}
+
+/* ════════════════════════════════════════════
+   Shared card-building helpers
+   ════════════════════════════════════════════ */
+
+function makeField(label, value, type, onDirty) {
+  const inp = ce('input', { type: type === 'number' ? 'number' : 'text', value: String(value ?? ''), step: '1', input: onDirty });
+  return ce('div', { class: 'field' }, ce('label', null, label), inp);
+}
+
+function readField(fieldEl) {
+  // Autocomplete fields have a hidden number input — prefer it
+  const hidden = fieldEl.querySelector('input[type="number"][style*="display: none"]');
+  if (hidden) return parseInt(hidden.value) || 0;
+  const inp = fieldEl.querySelector('input');
+  return inp.type === 'number' ? (parseInt(inp.value) || 0) : inp.value.trim();
+}
+
+function makeToggle(label, value, onDirty) {
+  const el = ce('div', { class: 'toggle' + (value ? ' on' : ''), click: () => { el.classList.toggle('on'); onDirty(); } });
+  el.append(ce('div', { class: 'toggle-track' }), ce('span', { class: 'toggle-label' }, label));
+  return el;
+}
+
+function readToggle(el) { return el.classList.contains('on'); }
+
+function makeTableInput(val, type, onDirty) {
+  return ce('td', null, ce('input', { type: type === 'number' ? 'number' : 'text', value: String(val ?? ''), step: '1', input: onDirty }));
+}
+
+function listOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function readTableInput(td) {
+  const hidden = td.querySelector('input[type="number"][style*="display: none"]');
+  if (hidden) return parseInt(hidden.value) || 0;
+  const inp = td.querySelector('input');
+  return inp.type === 'number' ? (parseInt(inp.value) || 0) : inp.value.trim();
+}
+
+// Autocomplete field: searches an API endpoint, displays name, stores numeric ID.
+// apiEndpoint: e.g. 'npcs' or 'items' — fetched as GET /api/{endpoint}?q=...
+// Returns a .field div. readField() on it returns the selected numeric ID.
+// idKey: which field in the API response holds the ID (default 'id', use 'behavior_id' for vendors)
+function makeAcField(label, currentId, currentName, apiEndpoint, onDirty, idKey) {
+  idKey = idKey || 'id';
+  const wrap = ce('div', { class: 'field' });
+  const acWrap = ce('div', { class: 'ac-wrap' });
+  const inp = ce('input', { type: 'text', placeholder: 'Type to search\u2026', value: currentName || '' });
+  const list = ce('div', { class: 'ac-list' });
+  const hint = ce('div', { class: 'ac-selected' }, currentId ? '#' + currentId : '');
+  // Hidden input holds the actual numeric ID for readField()
+  const hidden = ce('input', { type: 'number', value: String(currentId || 0) });
+  hidden.style.display = 'none';
+
+  let timer = null, focusIdx = -1;
+
+  async function doSearch() {
+    const q = inp.value.trim();
+    if (!q) { list.classList.remove('open'); return; }
+    try {
+      const results = await api('GET', apiEndpoint + '?q=' + encodeURIComponent(q));
+      list.innerHTML = '';
+      focusIdx = -1;
+      if (!results.length) {
+        list.append(ce('div', { class: 'ac-item', style: 'color:var(--ink3)' }, 'No results'));
+        list.classList.add('open');
+        return;
+      }
+      results.forEach(r => {
+        const acTags = [];
+        if (r.type) acTags.push(ce('span', { class: 'ac-tag' }, r.type));
+        if (r.gender) acTags.push(ce('span', { class: 'ac-tag' }, r.gender));
+        if (r.npc_type) acTags.push(ce('span', { class: 'ac-tag' }, r.npc_type));
+        const rid = r[idKey];
+        const item = ce('div', { class: 'ac-item', click: () => pick(r) },
+          ce('span', { class: 'ac-name' }, r.name),
+          ...acTags,
+          ce('span', { class: 'ac-id' }, '#' + rid)
+        );
+        list.append(item);
+      });
+      list.classList.add('open');
+    } catch(e) { console.error(e); }
+  }
+
+  function pick(r) {
+    hidden.value = String(r[idKey]);
+    inp.value = r.name;
+    hint.textContent = '#' + r[idKey];
+    list.classList.remove('open');
+    onDirty();
+  }
+
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(doSearch, 200);
+  });
+
+  inp.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); focusIdx = Math.min(focusIdx + 1, items.length - 1); updateFocus(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); focusIdx = Math.max(focusIdx - 1, 0); updateFocus(items); }
+    else if (e.key === 'Enter' && focusIdx >= 0 && items[focusIdx]) { e.preventDefault(); items[focusIdx].click(); }
+    else if (e.key === 'Escape') { list.classList.remove('open'); }
+  });
+
+  function updateFocus(items) {
+    items.forEach((it, i) => it.classList.toggle('focused', i === focusIdx));
+    if (items[focusIdx]) items[focusIdx].scrollIntoView({ block: 'nearest' });
+  }
+
+  inp.addEventListener('focus', () => { if (inp.value.trim()) doSearch(); });
+  document.addEventListener('click', e => { if (!acWrap.contains(e.target)) list.classList.remove('open'); });
+
+  acWrap.append(inp, list);
+  wrap.append(ce('label', null, label), acWrap, hint, hidden);
+  return wrap;
+}
+
+// Table-cell autocomplete for item lookups inside sub-tables.
+// Returns a <td> with an ac-wrap inside. readTableInput() on it returns the numeric ID.
+function makeTableAcInput(itemId, itemNameStr, apiEndpoint, onDirty) {
+  const td = ce('td', { style: 'position:relative' });
+  const acWrap = ce('div', { class: 'ac-wrap' });
+  const inp = ce('input', { type: 'text', placeholder: 'Search\u2026', value: itemNameStr || '' });
+  const list = ce('div', { class: 'ac-list' });
+  const hidden = ce('input', { type: 'number', value: String(itemId || 0) });
+  hidden.style.display = 'none';
+  let timer = null, focusIdx = -1;
+
+  async function doSearch() {
+    const q = inp.value.trim();
+    if (!q) { list.classList.remove('open'); return; }
+    try {
+      const results = await api('GET', apiEndpoint + '?q=' + encodeURIComponent(q));
+      list.innerHTML = ''; focusIdx = -1;
+      if (!results.length) { list.classList.remove('open'); return; }
+      results.forEach(r => {
+        const tags = [];
+        if (r.type) tags.push(ce('span', { class: 'ac-tag' }, r.type));
+        if (r.gender) tags.push(ce('span', { class: 'ac-tag' }, r.gender));
+        list.append(ce('div', { class: 'ac-item', click: () => {
+          hidden.value = String(r.id); inp.value = r.name;
+          list.classList.remove('open'); onDirty();
+        }}, ce('span', { class: 'ac-name' }, r.name), ...tags, ce('span', { class: 'ac-id' }, '#' + r.id)));
+      });
+      list.classList.add('open');
+    } catch(e) { console.error(e); }
+  }
+
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(doSearch, 200); });
+  inp.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); focusIdx = Math.min(focusIdx + 1, items.length - 1); items.forEach((it,i) => it.classList.toggle('focused', i===focusIdx)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); focusIdx = Math.max(focusIdx - 1, 0); items.forEach((it,i) => it.classList.toggle('focused', i===focusIdx)); }
+    else if (e.key === 'Enter' && focusIdx >= 0 && items[focusIdx]) { e.preventDefault(); items[focusIdx].click(); }
+    else if (e.key === 'Escape') { list.classList.remove('open'); }
+  });
+  inp.addEventListener('focus', () => { if (inp.value.trim()) doSearch(); });
+  document.addEventListener('click', e => { if (!acWrap.contains(e.target)) list.classList.remove('open'); });
+
+  acWrap.append(inp, list);
+  td.append(acWrap, hidden);
+  return td;
+}
+
+function makeSubSection(title, headers, rows, addLabel, onAddRow, onDirty) {
+  const sec = ce('div', { class: 'sub-section' });
+  const tbl = ce('table', { class: 'sub-table' });
+  const thead = ce('thead', null, ce('tr', null, ...headers.map(h => ce('th', null, h)), ce('th', { style: 'width:60px' }, '')));
+  const tbody = ce('tbody');
+  for (const row of rows) tbody.append(row);
+  tbl.append(thead, tbody);
+
+  sec.append(
+    ce('div', { class: 'sub-section-header' },
+      ce('span', { class: 'sub-section-title' }, title),
+      ce('button', { class: 'btn btn-sm', click: () => {
+        const newRow = onAddRow();
+        tbody.append(newRow);
+        onDirty();
+        // Focus first input in new row
+        const first = newRow.querySelector('input');
+        if (first) first.focus();
+      }}, '+ ' + addLabel)
+    ),
+    ce('div', { class: 'table-scroll' }, tbl)
+  );
+  return sec;
+}
+
+function makeSubRow(cells, onDirty) {
+  const tr = ce('tr', null,
+    ...cells,
+    ce('td', null, ce('div', { class: 'row-actions' },
+      ce('button', { class: 'btn btn-sm btn-danger', click: () => { tr.remove(); onDirty(); } }, '\u2715')
+    ))
+  );
+  return tr;
+}
+
+/* ════════════════════════════════════════════
+   NPC Drops
+   ════════════════════════════════════════════ */
+createEditor('drops', {
+
+  newItem: () => ({ npc_id: 0, drops: [{ item_id: 0, min_amount: 1, max_amount: 1, rate: 100 }] }),
+  renderSummary(item) {
+    const drops = listOrEmpty(item.drops);
+    return {
+      title: item.npc_name ? item.npc_name + ' (#' + item.npc_id + ')' : 'NPC #' + item.npc_id,
+      subtitle: drops.length ? `First success stops the roll chain. ${drops.length} configured drop ${drops.length === 1 ? 'entry' : 'entries'}.` : 'No drop rows configured yet.',
+      badge: drops.length + ' drops',
+      meta: drops.slice(0, 3).map(d => `${d.item_name || ('Item #' + d.item_id)} • rate ${d.rate}`)
+    };
+  },
+  buildForm(item, onDirty) {
+    const drops = listOrEmpty(item.drops);
+    const body = ce('div');
+    body.append(makeAcField('NPC', item.npc_id, item.npc_name || '', 'npcs', onDirty));
+    body.append(ce('div', { class: 'field-hint' }, 'Drop table is read top-to-bottom. For each row a random number (1\u201364000) is rolled \u2014 if it\'s below the Rate, that item drops and the table stops. Higher rate = more likely.'));
+
+    function makeDropRow(d) {
+      return makeSubRow([
+        makeTableAcInput(d.item_id, d.item_name || '', 'items', onDirty),
+        makeTableInput(d.min_amount, 'number', onDirty),
+        makeTableInput(d.max_amount, 'number', onDirty),
+        makeTableInput(d.rate, 'number', onDirty),
+      ], onDirty);
+    }
+
+    body.append(makeSubSection('Drop Items', ['Item','Min Amt','Max Amt','Rate (1\u201364000)'],
+      drops.map(makeDropRow), 'Drop',
+      () => makeDropRow({ item_id: 0, min_amount: 1, max_amount: 1, rate: 100 }),
+      onDirty
+    ));
+    return body;
+  },
+  readForm(body) {
+    const npcId = readField(body.querySelector('.field'));
+    const drops = [];
+    body.querySelectorAll('.sub-table tbody tr').forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      drops.push({ item_id: readTableInput(tds[0]), min_amount: readTableInput(tds[1]), max_amount: readTableInput(tds[2]), rate: readTableInput(tds[3]) });
+    });
+    return { npc_id: npcId, drops };
+  },
+});
+
+/* ════════════════════════════════════════════
+   NPC Talk
+   ════════════════════════════════════════════ */
+createEditor('talk', {
+
+  newItem: () => ({ npc_id: 0, rate: 1, messages: ['Hello!'] }),
+  renderSummary(item) {
+    const messages = listOrEmpty(item.messages);
+    return {
+      title: item.npc_name ? item.npc_name + ' (#' + item.npc_id + ')' : 'NPC #' + item.npc_id,
+      subtitle: messages[0] ? `"${messages[0]}"` : 'No dialogue message configured yet.',
+      badge: messages.length + ' msgs',
+      meta: [`Rate ${item.rate}`]
+    };
+  },
+  buildForm(item, onDirty) {
+    const messages = listOrEmpty(item.messages);
+    const body = ce('div');
+    const fg = ce('div', { class: 'field-grid compact' });
+    fg.append(makeAcField('NPC', item.npc_id, item.npc_name || '', 'npcs', onDirty), makeField('Rate', item.rate, 'number', onDirty));
+    body.append(fg);
+    body.append(ce('div', { class: 'field-hint' }, 'Rate controls how often the NPC speaks. Higher = more frequent. Crow\u2019s rate is 100, Rat\u2019s is 1.'));
+
+    function makeMsgRow(msg) {
+      return makeSubRow([makeTableInput(msg, 'text', onDirty)], onDirty);
+    }
+
+    body.append(makeSubSection('Messages', ['Message'],
+      messages.map(makeMsgRow), 'Message',
+      () => makeMsgRow(''),
+      onDirty
+    ));
+    return body;
+  },
+  readForm(body) {
+    const fields = body.querySelectorAll('.field');
+    const messages = [];
+    body.querySelectorAll('.sub-table tbody tr').forEach(tr => messages.push(readTableInput(tr.querySelector('td'))));
+    return { npc_id: readField(fields[0]), rate: readField(fields[1]), messages };
+  },
+});
+
+/* ════════════════════════════════════════════
+   Inns
+   ════════════════════════════════════════════ */
+createEditor('inns', {
+
+  newItem: () => ({
+    behavior_id: 0, name: 'New Inn', spawn_map: 1, spawn_x: 5, spawn_y: 5,
+    sleep_map: 1, sleep_x: 5, sleep_y: 5, alt_spawn_enabled: false,
+    alt_spawn_map: 0, alt_spawn_x: 0, alt_spawn_y: 0,
+    questions: [{ question: '', answer: '' }, { question: '', answer: '' }, { question: '', answer: '' }]
+  }),
+  renderSummary(item) {
+    const questions = listOrEmpty(item.questions);
+    return {
+      title: item.vendor_name ? item.vendor_name + ' \u2014 ' + (item.name || 'Unnamed') : (item.name || 'Unnamed'),
+      subtitle: `Spawn ${item.spawn_map}:${item.spawn_x},${item.spawn_y} • Sleep ${item.sleep_map}:${item.sleep_x},${item.sleep_y}`,
+      badge: 'Vendor #' + item.behavior_id,
+      meta: [item.alt_spawn_enabled ? 'Alternate spawn enabled' : 'Alternate spawn disabled', `${questions.length} citizenship questions`]
+    };
+  },
+  buildForm(item, onDirty) {
+    const body = ce('div');
+    const basic = ce('div', { class: 'field-grid' });
+    basic.append(makeAcField('Vendor NPC', item.behavior_id, item.vendor_name || '', 'vendors', onDirty, 'behavior_id'), makeField('Name', item.name, 'text', onDirty));
+    body.append(basic);
+
+    function coordGroup(title, map, x, y) {
+      const g = ce('div', { class: 'field-group' });
+      g.append(ce('div', { class: 'field-group-title' }, title));
+      const fg = ce('div', { class: 'field-grid compact' });
+      fg.append(makeField('Map', map, 'number', onDirty), makeField('X', x, 'number', onDirty), makeField('Y', y, 'number', onDirty));
+      g.append(fg);
+      return g;
+    }
+
+    body.append(coordGroup('Spawn (after death)', item.spawn_map, item.spawn_x, item.spawn_y));
+    body.append(coordGroup('Inn Sleep', item.sleep_map, item.sleep_x, item.sleep_y));
+
+    const altG = ce('div', { class: 'field-group' });
+    altG.append(ce('div', { class: 'field-group-title' }, 'Alternate Spawn (high level)'));
+    altG.append(makeToggle('Enabled', item.alt_spawn_enabled, onDirty));
+    const altFg = ce('div', { class: 'field-grid compact', style: 'margin-top:8px' });
+    altFg.append(makeField('Map', item.alt_spawn_map, 'number', onDirty), makeField('X', item.alt_spawn_x, 'number', onDirty), makeField('Y', item.alt_spawn_y, 'number', onDirty));
+    altG.append(altFg);
+    body.append(altG);
+
+    const qs = listOrEmpty(item.questions);
+    if (qs.length) {
+      const sec = ce('div', { class: 'sub-section' });
+      const tbl = ce('table', { class: 'sub-table' });
+      tbl.append(ce('thead', null, ce('tr', null, ce('th', { style: 'width:30px' }, '#'), ce('th', null, 'Question'), ce('th', null, 'Answer'))));
+      const tbody = ce('tbody');
+      qs.forEach((q, qi) => tbody.append(ce('tr', null,
+        ce('td', { style: 'text-align:center;color:var(--ink3);font-size:12px;padding:6px' }, String(qi + 1)),
+        makeTableInput(q.question, 'text', onDirty),
+        makeTableInput(q.answer, 'text', onDirty)
+      )));
+      tbl.append(tbody);
+      sec.append(ce('div', { class: 'sub-section-header' }, ce('span', { class: 'sub-section-title' }, 'Citizenship Questions')), ce('div', { class: 'table-scroll' }, tbl));
+      body.append(sec);
+    }
+    return body;
+  },
+  readForm(body) {
+    const allFields = body.querySelectorAll('.field');
+    const tgl = body.querySelector('.toggle');
+    const qs = [];
+    body.querySelectorAll('.sub-table tbody tr').forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      qs.push({ question: readTableInput(tds[1]), answer: readTableInput(tds[2]) });
+    });
+    return {
+      behavior_id: readField(allFields[0]), name: readField(allFields[1]),
+      spawn_map: readField(allFields[2]), spawn_x: readField(allFields[3]), spawn_y: readField(allFields[4]),
+      sleep_map: readField(allFields[5]), sleep_x: readField(allFields[6]), sleep_y: readField(allFields[7]),
+      alt_spawn_enabled: readToggle(tgl),
+      alt_spawn_map: readField(allFields[8]), alt_spawn_x: readField(allFields[9]), alt_spawn_y: readField(allFields[10]),
+      questions: qs
+    };
+  },
+});
+
+/* ════════════════════════════════════════════
+   Shops
+   ════════════════════════════════════════════ */
+createEditor('shops', {
+
+  newItem: () => ({ behavior_id: 0, name: 'New Shop', trades: [], crafts: [] }),
+  renderSummary(item) {
+    const trades = listOrEmpty(item.trades);
+    const crafts = listOrEmpty(item.crafts);
+    return {
+      title: item.vendor_name ? item.vendor_name + ' \u2014 ' + (item.name || 'Unnamed') : (item.name || 'Unnamed'),
+      subtitle: `${trades.length} trades • ${crafts.length} crafts`,
+      badge: 'Vendor #' + item.behavior_id,
+      meta: trades.slice(0, 2).map(t => `${t.item_name || ('Item #' + t.item_id)} • buy ${t.buy_price}`)
+    };
+  },
+  buildForm(item, onDirty) {
+    const trades = listOrEmpty(item.trades);
+    const crafts = listOrEmpty(item.crafts);
+    const body = ce('div');
+    const basic = ce('div', { class: 'field-grid' });
+    basic.append(makeAcField('Vendor NPC', item.behavior_id, item.vendor_name || '', 'vendors', onDirty, 'behavior_id'), makeField('Name', item.name, 'text', onDirty));
+    body.append(basic);
+
+    function makeTradeRow(t) {
+      return makeSubRow([
+        makeTableAcInput(t.item_id, t.item_name || '', 'items', onDirty), makeTableInput(t.buy_price, 'number', onDirty),
+        makeTableInput(t.sell_price, 'number', onDirty), makeTableInput(t.max_amount, 'number', onDirty),
+      ], onDirty);
+    }
+    body.append(makeSubSection('Trades', ['Item','Buy Price','Sell Price','Max Amt'],
+      trades.map(makeTradeRow), 'Trade',
+      () => makeTradeRow({ item_id: 0, item_name: '', buy_price: 0, sell_price: 0, max_amount: 1 }),
+      onDirty
+    ));
+
+    function makeCraftRow(c) {
+      const ings = c.ingredients || [];
+      return makeSubRow([
+        makeTableAcInput(c.item_id, c.item_name || '', 'items', onDirty),
+        makeTableAcInput(ings[0]?.item_id||0, ings[0]?.item_name||'', 'items', onDirty), makeTableInput(ings[0]?.amount||0, 'number', onDirty),
+        makeTableAcInput(ings[1]?.item_id||0, ings[1]?.item_name||'', 'items', onDirty), makeTableInput(ings[1]?.amount||0, 'number', onDirty),
+        makeTableAcInput(ings[2]?.item_id||0, ings[2]?.item_name||'', 'items', onDirty), makeTableInput(ings[2]?.amount||0, 'number', onDirty),
+        makeTableAcInput(ings[3]?.item_id||0, ings[3]?.item_name||'', 'items', onDirty), makeTableInput(ings[3]?.amount||0, 'number', onDirty),
+      ], onDirty);
+    }
+    body.append(makeSubSection('Crafts', ['Result','Ing 1','Amt','Ing 2','Amt','Ing 3','Amt','Ing 4','Amt'],
+      crafts.map(makeCraftRow), 'Craft',
+      () => makeCraftRow({ item_id: 0, item_name: '', ingredients: [{item_id:0,amount:0},{item_id:0,amount:0},{item_id:0,amount:0},{item_id:0,amount:0}] }),
+      onDirty
+    ));
+    return body;
+  },
+  readForm(body) {
+    const fields = body.querySelectorAll(':scope > .field-grid > .field');
+    const sections = body.querySelectorAll('.sub-section');
+    const trades = [];
+    sections[0].querySelectorAll('tbody tr').forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      trades.push({ item_id: readTableInput(tds[0]), buy_price: readTableInput(tds[1]), sell_price: readTableInput(tds[2]), max_amount: readTableInput(tds[3]) });
+    });
+    const crafts = [];
+    sections[1].querySelectorAll('tbody tr').forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      crafts.push({ item_id: readTableInput(tds[0]), ingredients: [
+        { item_id: readTableInput(tds[1]), amount: readTableInput(tds[2]) },
+        { item_id: readTableInput(tds[3]), amount: readTableInput(tds[4]) },
+        { item_id: readTableInput(tds[5]), amount: readTableInput(tds[6]) },
+        { item_id: readTableInput(tds[7]), amount: readTableInput(tds[8]) },
+      ]});
+    });
+    return { behavior_id: readField(fields[0]), name: readField(fields[1]), trades, crafts };
+  },
+});
+
+/* ════════════════════════════════════════════
+   Skill Masters
+   ════════════════════════════════════════════ */
+createEditor('masters', {
+
+  newItem: () => ({ behavior_id: 0, name: 'New Master', skills: [] }),
+  renderSummary(item) {
+    const skills = listOrEmpty(item.skills);
+    return {
+      title: item.vendor_name ? item.vendor_name + ' \u2014 ' + (item.name || 'Unnamed') : (item.name || 'Unnamed'),
+      subtitle: skills.length ? `${skills.length} trainable skill ${skills.length === 1 ? 'entry' : 'entries'}` : 'No skill rows configured yet.',
+      badge: skills.length + ' skills',
+      meta: skills.slice(0, 2).map(s => `Skill ${s.skill_id} • level ${s.level_req}`)
+    };
+  },
+  buildForm(item, onDirty) {
+    const skills = listOrEmpty(item.skills);
+    const body = ce('div');
+    const basic = ce('div', { class: 'field-grid' });
+    basic.append(makeAcField('Vendor NPC', item.behavior_id, item.vendor_name || '', 'vendors', onDirty, 'behavior_id'), makeField('Name', item.name, 'text', onDirty));
+    body.append(basic);
+
+    function makeSkillRow(s) {
+      const reqs = s.skill_reqs || [0,0,0,0];
+      return makeSubRow([
+        makeTableInput(s.skill_id, 'number', onDirty), makeTableInput(s.level_req, 'number', onDirty),
+        makeTableInput(s.class_req, 'number', onDirty), makeTableInput(s.price, 'number', onDirty),
+        makeTableInput(reqs[0]||0, 'number', onDirty), makeTableInput(reqs[1]||0, 'number', onDirty),
+        makeTableInput(reqs[2]||0, 'number', onDirty), makeTableInput(reqs[3]||0, 'number', onDirty),
+        makeTableInput(s.str_req, 'number', onDirty), makeTableInput(s.int_req, 'number', onDirty),
+        makeTableInput(s.wis_req, 'number', onDirty), makeTableInput(s.agi_req, 'number', onDirty),
+        makeTableInput(s.con_req, 'number', onDirty), makeTableInput(s.cha_req, 'number', onDirty),
+      ], onDirty);
+    }
+
+    body.append(makeSubSection('Skills',
+      ['Skill','Lvl','Class','Price','Req1','Req2','Req3','Req4','Str','Int','Wis','Agi','Con','Cha'],
+      skills.map(makeSkillRow), 'Skill',
+      () => makeSkillRow({ skill_id:0, level_req:0, class_req:0, price:0, skill_reqs:[0,0,0,0], str_req:0, int_req:0, wis_req:0, agi_req:0, con_req:0, cha_req:0 }),
+      onDirty
+    ));
+    return body;
+  },
+  readForm(body) {
+    const fields = body.querySelectorAll(':scope > .field-grid > .field');
+    const skills = [];
+    body.querySelectorAll('.sub-table tbody tr').forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      skills.push({
+        skill_id: readTableInput(tds[0]), level_req: readTableInput(tds[1]), class_req: readTableInput(tds[2]), price: readTableInput(tds[3]),
+        skill_reqs: [readTableInput(tds[4]), readTableInput(tds[5]), readTableInput(tds[6]), readTableInput(tds[7])],
+        str_req: readTableInput(tds[8]), int_req: readTableInput(tds[9]), wis_req: readTableInput(tds[10]),
+        agi_req: readTableInput(tds[11]), con_req: readTableInput(tds[12]), cha_req: readTableInput(tds[13])
+      });
+    });
+    return { behavior_id: readField(fields[0]), name: readField(fields[1]), skills };
+  },
+});
+
+window.addEventListener('beforeunload', e => {
+  if (Object.values(editors).some(ed => ed.dirty)) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+updateChrome();
+updateWorkspaceStatus();
+showPage(location.hash.slice(1) || 'dashboard', false);
+</script>
+</body>
+</html>

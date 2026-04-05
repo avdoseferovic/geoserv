@@ -1,0 +1,74 @@
+{{define "inns"}}
+<div class="max-w-7xl mx-auto flex flex-col space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">Inns</h1>
+    <div class="flex items-center gap-3">
+      <form class="relative">
+      <input type="search" name="q" value="{{.Query}}" placeholder="Search Inns..." 
+             class="block w-64 rounded-md border-gray-300 border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 outline-none" 
+             hx-get="/ui/inns" hx-target="#main-content" hx-trigger="input changed delay:500ms, search" />
+    </form>
+      <button hx-get="/ui/inns/0/edit" hx-target="#modal-container" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors whitespace-nowrap">
+        + New Inn
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Behavior ID</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-64">Name / Vendor</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Spawn / Sleep</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Questions</th>
+            <th scope="col" class="relative px-6 py-3 w-24"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {{range .Items}}
+          {{template "inn_row" .}}
+          {{else}}
+          <tr><td colspan="5" class="px-6 py-8 whitespace-nowrap text-sm text-gray-500 text-center italic">No Inns found matching your search.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "pagination" .}}
+  </div>
+</div>
+{{end}}
+
+{{define "inn_row"}}
+<tr id="inn-row-{{.BehaviorID}}" class="hover:bg-gray-50 transition-colors">
+  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.BehaviorID}}</td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <div class="text-sm font-bold text-gray-900">{{.Name}}</div>
+    <div class="text-xs text-gray-500 mt-1">Vendor: <span class="font-medium text-indigo-600">{{.VendorName}}</span></div>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 space-y-1">
+    <div><span class="font-semibold text-gray-800">Spawn:</span> Map {{.SpawnMap}}, X:{{.SpawnX}} Y:{{.SpawnY}}</div>
+    <div><span class="font-semibold text-gray-800">Sleep:</span> Map {{.SleepMap}}, X:{{.SleepX}} Y:{{.SleepY}}</div>
+    {{if .AltSpawnEnabled}}
+    <div class="text-indigo-600"><span class="font-semibold">Alt:</span> Map {{.AltSpawnMap}}, X:{{.AltSpawnX}} Y:{{.AltSpawnY}}</div>
+    {{end}}
+  </td>
+  <td class="px-6 py-4 text-sm text-gray-600">
+    <ul class="space-y-2">
+      {{range .Questions}}
+      <li class="bg-gray-50 p-2 rounded border border-gray-100">
+        <div><span class="font-bold text-gray-800">Q:</span> {{.Question}}</div>
+        <div><span class="font-bold text-indigo-600">A:</span> {{.Answer}}</div>
+      </li>
+      {{else}}
+      <li class="text-gray-400 italic list-none">No questions</li>
+      {{end}}
+    </ul>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
+    <button hx-get="/ui/inns/{{.BehaviorID}}/edit" hx-target="#modal-container" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded-md hover:bg-indigo-100 transition-colors">Edit</button>
+    <button hx-delete="/ui/inns/{{.BehaviorID}}" hx-confirm="Are you sure you want to delete this record?" hx-target="closest tr" hx-swap="outerHTML" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md hover:bg-red-100 transition-colors ml-2">Delete</button>
+  </td>
+</tr>
+{{end}}

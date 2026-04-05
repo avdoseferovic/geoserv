@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/avdoseferovic/geoserv/internal/admin"
 	"github.com/avdoseferovic/geoserv/internal/config"
 	"github.com/avdoseferovic/geoserv/internal/content"
 	"github.com/avdoseferovic/geoserv/internal/db"
@@ -60,10 +61,11 @@ func main() {
 	}
 	slog.Info("database migrations applied")
 
-	// Load pub files (EIF/ENF/ESF/ECF)
+	// Load pub files (EIF/ENF/ESF/ECF) and server data files (EID/EDF/ESF/EMF/ETF)
 	if err := pubdata.LoadAll(); err != nil {
 		slog.Warn("failed to load pub files", "err", err)
 	}
+	pubdata.LoadServerData()
 
 	// Load quests
 	if err := quest.LoadQuests("data/quests"); err != nil {
@@ -99,6 +101,14 @@ func main() {
 
 	go srv.RunPingLoop(ctx)
 	go srv.RunSaveLoop(ctx)
+
+	// Admin panel
+	if cfg.Admin.Enabled {
+		adminSrv := admin.New(cfg, w)
+		if err := adminSrv.Start(ctx); err != nil {
+			slog.Error("failed to start admin panel", "err", err)
+		}
+	}
 
 	// SLN heartbeat
 	go sln.Run(ctx, cfg.SLN, cfg.Server.Port, w.OnlinePlayerCount)

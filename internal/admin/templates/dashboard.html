@@ -1,0 +1,81 @@
+{{define "content"}}
+<div class="max-w-6xl mx-auto space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">Server Dashboard</h1>
+  </div>
+  
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="bg-white overflow-hidden shadow-sm border border-gray-200 rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Uptime</dt>
+              <dd class="text-2xl font-semibold text-gray-900">{{.Uptime}}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white overflow-hidden shadow-sm border border-gray-200 rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Online Players</dt>
+              <dd class="text-2xl font-semibold text-indigo-600">{{.OnlinePlayers}}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow-sm border border-gray-200 sm:rounded-lg overflow-hidden">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Database Statistics</h3>
+    </div>
+    <div class="px-4 py-5 sm:p-0">
+      <dl class="sm:divide-y sm:divide-gray-200">
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Items</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Items}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">NPCs</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Npcs}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Spells</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Spells}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Classes</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Classes}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Drop Tables</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.DropTables}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Talk Tables</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.TalkTables}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Inns</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Inns}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Shops</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.Shops}}</dd>
+        </div>
+        <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+          <dt class="text-sm font-medium text-gray-500">Skill Masters</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{{.SkillMasters}}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</div>
+{{end}}

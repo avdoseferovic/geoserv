@@ -98,3 +98,8 @@ type Rescue struct {
 	X   int `yaml:"x"`
 	Y   int `yaml:"y"`
 }
+
+type Admin struct {
+	Enabled bool   `yaml:"enabled"`
+	Port    string `yaml:"port"`
+}

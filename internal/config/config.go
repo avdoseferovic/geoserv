@@ -37,6 +37,7 @@ type Config struct {
 	AutoPickup       AutoPickup             `yaml:"auto_pickup"`
 	Content          Content                `yaml:"content"`
 	Arenas           Arenas                 `yaml:"arenas"`
+	Admin            Admin                  `yaml:"admin"`
 }
 
 // Load reads config from a directory containing server.yaml, gameplay.yaml,

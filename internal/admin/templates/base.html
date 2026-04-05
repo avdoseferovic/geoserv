@@ -1,0 +1,180 @@
+{{define "base"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoServ Admin Panel</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              indigo: {
+                50: '#eef2ff',
+                100: '#e0e7ff',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                900: '#312e81',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-900 font-sans antialiased h-screen flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 flex-col hidden sm:flex text-gray-300">
+      <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+        <h2 class="text-xl font-bold text-white tracking-wider uppercase text-sm">GeoServ Admin</h2>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <div class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Overview</div>
+        <a href="#" hx-get="/ui/dashboard" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Dashboard</a>
+        
+        <div class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Database</div>
+        <a href="#" hx-get="/ui/drops" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Drops</a>
+        <a href="#" hx-get="/ui/talk" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Talk</a>
+        <a href="#" hx-get="/ui/inns" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Inns</a>
+        <a href="#" hx-get="/ui/shops" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Shops</a>
+        <a href="#" hx-get="/ui/masters" hx-target="#main-content" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:text-white hover:bg-slate-800 transition-colors">Masters</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden relative">
+      <!-- Top header for mobile (optional) -->
+      <header class="sm:hidden bg-white border-b border-gray-200 h-16 flex items-center px-4">
+        <h1 class="text-xl font-bold text-slate-900">GeoServ</h1>
+      </header>
+      
+      <main class="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8" id="main-content">
+          {{template "content" .}}
+      </main>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+    <script>
+      function closeModal() {
+          document.getElementById('modal-container').innerHTML = '';
+          document.querySelectorAll('ul.fixed.z-\\[100\\]').forEach(el => el.remove());
+      }
+      document.body.addEventListener('htmx:afterSwap', function(evt) {
+          if (evt.detail.target.id === 'modal-container') {
+              // Modal opened
+              setTimeout(initLookups, 50);
+          } else if (evt.detail.target.id.includes('-row-')) {
+              // Row updated, close modal
+              closeModal();
+          }
+      });
+      // Handle ESC key to close modal
+      document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeModal();
+      });
+
+      // Autocomplete logic
+      function initLookups() {
+          document.querySelectorAll('input[data-lookup]').forEach(inp => {
+              if (inp.dataset.acInitialized) return;
+              inp.dataset.acInitialized = "true";
+              
+              // Hide original number input
+              inp.style.display = 'none';
+              
+              const wrapper = document.createElement('div');
+              wrapper.className = 'relative flex-1';
+              inp.parentNode.insertBefore(wrapper, inp);
+              wrapper.appendChild(inp);
+              
+              const searchInp = document.createElement('input');
+              searchInp.type = 'text';
+              searchInp.className = inp.className.replace('w-24', 'w-full').replace('w-20', 'w-full').replace('w-full', 'w-full');
+              searchInp.placeholder = `Search ${inp.dataset.lookup}...`;
+              searchInp.value = inp.value !== '0' ? inp.value : '';
+              
+              // Try to fetch initial name if ID > 0
+              if (inp.dataset.name && inp.value !== '0' && inp.value !== '') {
+                  searchInp.value = `${inp.dataset.name} (${inp.value})`;
+              } else if (inp.value !== '0' && inp.value !== '') {
+                  fetch(`/api/${inp.dataset.lookup}s?q=${inp.value}`)
+                      .then(r => r.json())
+                      .then(data => {
+                          const exact = data.find(x => x.id == inp.value);
+                          if (exact) searchInp.value = `${exact.name} (${exact.id})`;
+                      }).catch(() => {});
+              }
+              
+              wrapper.appendChild(searchInp);
+              
+              const dropdown = document.createElement('ul');
+              dropdown.className = 'fixed z-[100] bg-white border border-gray-200 rounded-md shadow-2xl max-h-60 overflow-y-auto hidden text-sm';
+              document.body.appendChild(dropdown);
+              
+              const updatePosition = () => {
+                  if (dropdown.classList.contains('hidden')) return;
+                  const rect = searchInp.getBoundingClientRect();
+                  dropdown.style.top = `${rect.bottom}px`;
+                  dropdown.style.left = `${rect.left}px`;
+                  dropdown.style.width = `${rect.width}px`;
+              };
+              
+              window.addEventListener('resize', updatePosition);
+              document.addEventListener('scroll', updatePosition, true);
+              
+              let timer;
+              
+              searchInp.addEventListener('input', (e) => {
+                  clearTimeout(timer);
+                  dropdown.classList.remove('hidden');
+                  updatePosition();
+                  dropdown.innerHTML = '<li class="px-3 py-2 text-gray-500 italic">Searching...</li>';
+                  
+                  timer = setTimeout(() => {
+                      fetch(`/api/${inp.dataset.lookup}s?q=${encodeURIComponent(e.target.value)}`)
+                          .then(r => r.json())
+                          .then(data => {
+                              dropdown.innerHTML = '';
+                              if (!data || data.length === 0) {
+                                  dropdown.innerHTML = '<li class="px-3 py-2 text-gray-500 italic">No results found</li>';
+                                  return;
+                              }
+                              data.slice(0, 50).forEach(item => {
+                                  const li = document.createElement('li');
+                                  li.className = 'px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-0';
+                                  li.innerHTML = `<div class="font-medium text-gray-900">${item.name}</div><div class="text-xs text-gray-500">ID: ${item.id}</div>`;
+                                  li.addEventListener('mousedown', () => {
+                                      inp.value = item.id;
+                                      searchInp.value = `${item.name} (${item.id})`;
+                                      dropdown.classList.add('hidden');
+                                  });
+                                  dropdown.appendChild(li);
+                              });
+                          });
+                  }, 300);
+              });
+              
+              searchInp.addEventListener('focus', () => {
+                  if (searchInp.value) searchInp.dispatchEvent(new Event('input'));
+              });
+              
+              searchInp.addEventListener('blur', () => {
+                  setTimeout(() => dropdown.classList.add('hidden'), 200);
+              });
+          });
+      }
+    </script>
+  </body>
+</html>
+{{end}}

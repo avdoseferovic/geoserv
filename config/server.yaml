@@ -91,3 +91,7 @@ rescue:
   map: 4
   x: 24
   y: 24
+
+admin:
+  enabled: true
+  port: "9090"
