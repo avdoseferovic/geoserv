@@ -102,7 +102,7 @@ func saveFile(path string, s interface{ Serialize(*data.EoWriter) error }) error
 	if err != nil {
 		return fmt.Errorf("serializing: %w", err)
 	}
-	return os.WriteFile(path, raw, 0644)
+	return os.WriteFile(path, raw, 0o644)
 }
 
 func SaveDrops(df *eopubsrv.DropFile) error {

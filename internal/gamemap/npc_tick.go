@@ -43,6 +43,21 @@ func (m *GameMap) TickNPCs(actRate int) {
 				npc.Opponents = nil
 
 				batch.positions = append(batch.positions, npcPositionUpdate(npc))
+
+				// Broadcast appearance to all players
+				appearPkt := &server.NpcAgreeServerPacket{
+					Npcs: []server.NpcMapInfo{
+						{
+							Index:     npc.Index,
+							Id:        npc.ID,
+							Coords:    eoproto.Coords{X: npc.X, Y: npc.Y},
+							Direction: eoproto.Direction(npc.Direction),
+						},
+					},
+				}
+				m.mu.Unlock()
+				m.Broadcast(-1, appearPkt)
+				m.mu.Lock()
 			}
 			continue
 		}

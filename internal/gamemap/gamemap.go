@@ -5,6 +5,7 @@ import (
 
 	"github.com/avdoseferovic/geoserv/internal/config"
 	"github.com/avdoseferovic/geoserv/internal/protocol"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
@@ -37,6 +38,13 @@ type MapCharacter struct {
 	PendingWarp   *WarpDest
 	WarpSuckTicks int // countdown to warp suck check
 	GhostTicks    int
+}
+
+func (ch *MapCharacter) GenerateSessionID() int {
+	if ch.Bus == nil {
+		return 0
+	}
+	return ch.Bus.Sequencer.PeekNextSequence()
 }
 
 // PlayerVitalsSnapshot captures a player's tracked map vitals.
@@ -240,10 +248,15 @@ func (m *GameMap) Walk(playerID int, direction int, coords [2]int) {
 			Y:     warp.DestinationCoords.Y,
 		}
 		_ = ch.Bus.SendPacket(&server.WarpRequestServerPacket{
-			WarpType:     server.Warp_Local,
-			MapId:        warp.DestinationMap,
-			WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+			WarpType:  server.Warp_Local,
+			MapId:     warp.DestinationMap,
+			SessionId: ch.GenerateSessionID(),
+			WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+				MapRid:      pubdata.MapRid(warp.DestinationMap),
+				MapFileSize: pubdata.MapFileSize(warp.DestinationMap),
+			},
 		})
+
 	}
 }
 

@@ -108,10 +108,20 @@ func handleCmdJail(p *player.Player, args []string) {
 		Message: "You have been jailed by " + p.CharName,
 	})
 
+	target := p.World.GetPlayerSession(targetID)
+	sessionID := 0
+	if target != nil {
+		sessionID = target.GenerateSessionID()
+	}
+
 	p.World.SendToPlayer(targetID, &server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        jailMap,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     jailMap,
+		SessionId: sessionID,
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(jailMap),
+			MapFileSize: pubdata.MapFileSize(jailMap),
+		},
 	})
 	if pos, _ := p.World.GetPlayerPosition(targetID).(*gamemap.PlayerPosition); pos != nil {
 		p.World.SetPendingWarp(pos.MapID, targetID, jailMap, jailX, jailY)
@@ -144,10 +154,20 @@ func handleCmdFree(p *player.Player, args []string) {
 		p.World.SetPendingWarp(pos.MapID, targetID, freeMap, freeX, freeY)
 	}
 
+	target := p.World.GetPlayerSession(targetID)
+	sessionID := 0
+	if target != nil {
+		sessionID = target.GenerateSessionID()
+	}
+
 	p.World.SendToPlayer(targetID, &server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        freeMap,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     freeMap,
+		SessionId: sessionID,
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(freeMap),
+			MapFileSize: pubdata.MapFileSize(freeMap),
+		},
 	})
 
 	slog.Info("admin free", "admin", p.CharName, "target", targetName)
@@ -292,9 +312,13 @@ func handleCmdWarp(p *player.Player, args []string) {
 
 	p.PendingWarp = &player.PendingWarp{MapID: mapID, X: x, Y: y}
 	_ = p.Bus.SendPacket(&server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        mapID,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     mapID,
+		SessionId: p.GenerateSessionID(),
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(mapID),
+			MapFileSize: pubdata.MapFileSize(mapID),
+		},
 	})
 
 	slog.Info("admin warp", "admin", p.CharName, "map", mapID, "x", x, "y", y)
@@ -319,11 +343,14 @@ func handleCmdWarpTo(p *player.Player, args []string) {
 
 	p.PendingWarp = &player.PendingWarp{MapID: pos.MapID, X: pos.X, Y: pos.Y}
 	_ = p.Bus.SendPacket(&server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        pos.MapID,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     pos.MapID,
+		SessionId: p.GenerateSessionID(),
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(pos.MapID),
+			MapFileSize: pubdata.MapFileSize(pos.MapID),
+		},
 	})
-
 	slog.Info("admin warpto", "admin", p.CharName, "target", targetName)
 }
 
@@ -350,12 +377,19 @@ func handleCmdWarpToMe(p *player.Player, args []string) {
 	}
 
 	p.World.SetPendingWarp(pos.MapID, targetID, p.MapID, p.CharX, p.CharY)
+	sessionId := 0
+	if target := p.World.GetPlayerSession(targetID); target != nil {
+		sessionId = target.GenerateSessionID()
+	}
 	_ = targetBus.SendPacket(&server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        p.MapID,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     p.MapID,
+		SessionId: sessionId,
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(p.MapID),
+			MapFileSize: pubdata.MapFileSize(p.MapID),
+		},
 	})
-
 	slog.Info("admin warptome", "admin", p.CharName, "target", targetName)
 }
 

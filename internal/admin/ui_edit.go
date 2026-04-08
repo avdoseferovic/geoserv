@@ -439,7 +439,7 @@ func (s *Server) handleUIMastersPost(w http.ResponseWriter, r *http.Request) {
 	agiReqs := r.PostForm["agi_req"]
 	conReqs := r.PostForm["con_req"]
 	chaReqs := r.PostForm["cha_req"]
-	
+
 	skillReqsFlat := r.PostForm["skill_req"]
 
 	var skills []skillEntry

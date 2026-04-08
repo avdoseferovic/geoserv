@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/geoserv/internal/config"
 	"github.com/avdoseferovic/geoserv/internal/db"
 	"github.com/avdoseferovic/geoserv/internal/protocol"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -299,9 +300,13 @@ func (p *Player) Die() {
 	p.World.UpdatePlayerVitals(p.MapID, p.ID, p.CharHP, p.CharTP)
 	_ = p.Bus.SendPacket(&server.RecoverPlayerServerPacket{Hp: p.CharHP, Tp: p.CharTP})
 	_ = p.Bus.SendPacket(&server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        spawnMap,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     spawnMap,
+		SessionId: p.GenerateSessionID(),
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(spawnMap),
+			MapFileSize: pubdata.MapFileSize(spawnMap),
+		},
 	})
 }
 

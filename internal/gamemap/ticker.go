@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/avdoseferovic/geoserv/internal/protocol"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eomap "github.com/ethanmoffat/eolib-go/v3/protocol/map"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -386,9 +387,13 @@ func (m *GameMap) tickWarpSuck() {
 					Y:     warp.DestinationCoords.Y,
 				}
 				_ = ch.Bus.SendPacket(&server.WarpRequestServerPacket{
-					WarpType:     server.Warp_Local,
-					MapId:        warp.DestinationMap,
-					WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+					WarpType:  server.Warp_Local,
+					MapId:     warp.DestinationMap,
+					SessionId: ch.GenerateSessionID(),
+					WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+						MapRid:      pubdata.MapRid(warp.DestinationMap),
+						MapFileSize: pubdata.MapFileSize(warp.DestinationMap),
+					},
 				})
 				return // only process one warp per tick per player
 			}
@@ -446,10 +451,15 @@ func (m *GameMap) tickEvacuate() {
 				Y:     m.cfg.Jail.Y,
 			}
 			_ = ch.Bus.SendPacket(&server.WarpRequestServerPacket{
-				WarpType:     server.Warp_Local,
-				MapId:        m.cfg.Jail.Map,
-				WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+				WarpType:  server.Warp_Local,
+				MapId:     m.cfg.Jail.Map,
+				SessionId: ch.GenerateSessionID(),
+				WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+					MapRid:      pubdata.MapRid(m.cfg.Jail.Map),
+					MapFileSize: pubdata.MapFileSize(m.cfg.Jail.Map),
+				},
 			})
+
 		}
 		return
 	}

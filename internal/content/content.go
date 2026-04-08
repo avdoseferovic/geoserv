@@ -3,9 +3,12 @@ package content
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/avdoseferovic/geoserv/internal/config"
+	"github.com/avdoseferovic/geoserv/internal/pub"
+	eopub "github.com/ethanmoffat/eolib-go/v3/protocol/pub"
 )
 
 type ShopOffer struct {
@@ -69,7 +72,54 @@ func Load(cfg *config.Config) (*Registry, error) {
 		SkillMasters: map[int]SkillMaster{},
 	}
 
+	if pub.NpcDB != nil && pub.ShopFileDB != nil {
+		for i, npc := range pub.NpcDB.Npcs {
+			if npc.Type != eopub.Npc_Shop || npc.BehaviorId == 0 {
+				continue
+			}
+			vendorID := npc.BehaviorId
+			for _, s := range pub.ShopFileDB.Shops {
+				if s.BehaviorId != vendorID {
+					continue
+				}
+				shop := Shop{
+					NPCID: i + 1,
+					Name:  s.Name,
+					Buy:   []ShopOffer{},
+					Sell:  []ShopOffer{},
+					Craft: []CraftOffer{},
+				}
+
+				for _, t := range s.Trades {
+					if t.BuyPrice > 0 {
+						shop.Buy = append(shop.Buy, ShopOffer{ItemID: t.ItemId, Cost: t.BuyPrice})
+					}
+					if t.SellPrice > 0 {
+						shop.Sell = append(shop.Sell, ShopOffer{ItemID: t.ItemId, Cost: t.SellPrice})
+					}
+				}
+
+				for _, c := range s.Crafts {
+					craft := CraftOffer{
+						ItemID: c.ItemId,
+					}
+					for _, ing := range c.Ingredients {
+						craft.Ingredients = append(craft.Ingredients, CraftItem{ItemID: ing.ItemId, Amount: ing.Amount})
+					}
+					shop.Craft = append(shop.Craft, craft)
+				}
+
+				reg.Shops[shop.NPCID] = shop
+				break
+			}
+		}
+		slog.Info("shops loaded from pub data", "shops", len(reg.Shops))
+	} else {
+		slog.Warn("pub data for shops missing", "NpcDB_loaded", pub.NpcDB != nil, "ShopFileDB_loaded", pub.ShopFileDB != nil)
+	}
+
 	if cfg == nil {
+		current = reg
 		return reg, nil
 	}
 
@@ -81,6 +131,7 @@ func Load(cfg *config.Config) (*Registry, error) {
 		for _, shop := range shops {
 			reg.Shops[shop.NPCID] = shop
 		}
+		slog.Info("shops loaded from json", "shops", len(shops))
 	}
 
 	if cfg.Content.SkillMasterFile != "" {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/avdoseferovic/geoserv/internal/config"
 	"github.com/avdoseferovic/geoserv/internal/player"
+	pubdata "github.com/avdoseferovic/geoserv/internal/pub"
 	eoproto "github.com/ethanmoffat/eolib-go/v3/protocol"
 	"github.com/ethanmoffat/eolib-go/v3/protocol/net/server"
 )
@@ -157,11 +158,14 @@ func (w *World) HandlePlayerDefeat(mapID, attackerID, targetID, direction int) b
 	w.UpdatePlayerVitals(target.MapID, target.ID, target.CharHP, target.CharTP)
 	_ = target.Bus.SendPacket(&server.RecoverPlayerServerPacket{Hp: target.CharHP, Tp: target.CharTP})
 	_ = target.Bus.SendPacket(&server.WarpRequestServerPacket{
-		WarpType:     server.Warp_Local,
-		MapId:        target.PendingWarp.MapID,
-		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+		WarpType:  server.Warp_Local,
+		MapId:     target.PendingWarp.MapID,
+		SessionId: target.GenerateSessionID(),
+		WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+			MapRid:      pubdata.MapRid(target.PendingWarp.MapID),
+			MapFileSize: pubdata.MapFileSize(target.PendingWarp.MapID),
+		},
 	})
-
 	w.BroadcastMap(mapID, -1, &server.ArenaSpecServerPacket{
 		PlayerId:   attackerID,
 		Direction:  eoproto.Direction(direction),
@@ -349,11 +353,20 @@ func (w *World) tickArenas() {
 		}
 		for _, launch := range event.launches {
 			w.SetPendingWarp(event.mapID, launch.playerID, event.mapID, launch.x, launch.y)
+			sessionId := 0
+			if p := w.GetPlayerSession(launch.playerID); p != nil {
+				sessionId = p.GenerateSessionID()
+			}
 			w.SendToPlayer(launch.playerID, &server.WarpRequestServerPacket{
-				WarpType:     server.Warp_Local,
-				MapId:        event.mapID,
-				WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{},
+				WarpType:  server.Warp_Local,
+				MapId:     event.mapID,
+				SessionId: sessionId,
+				WarpTypeData: &server.WarpRequestWarpTypeDataMapSwitch{
+					MapRid:      pubdata.MapRid(event.mapID),
+					MapFileSize: pubdata.MapFileSize(event.mapID),
+				},
 			})
+
 		}
 		w.BroadcastMap(event.mapID, -1, &server.ArenaUseServerPacket{PlayersCount: event.startCount})
 		w.BroadcastMap(event.mapID, -1, &server.TalkServerServerPacket{Message: "Arena fight!"})

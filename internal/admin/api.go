@@ -113,8 +113,6 @@ func getDropsData(page, size int, q string) ([]dropNpc, int) {
 	})
 }
 
-
-
 // --- Talk (ETF) ---
 
 type talkNpc struct {
@@ -143,8 +141,6 @@ func getTalkData(page, size int, q string) ([]talkNpc, int) {
 		return strings.Contains(strconv.Itoa(t.NpcID), q) || strings.Contains(strings.ToLower(t.NpcName), q)
 	})
 }
-
-
 
 // --- Inns (EID) ---
 
@@ -196,8 +192,6 @@ func getInnsData(page, size int, q string) ([]innRecord, int) {
 		return strings.Contains(strconv.Itoa(inn.BehaviorID), q) || strings.Contains(strings.ToLower(inn.Name), q)
 	})
 }
-
-
 
 // --- Shops (ESF) ---
 
@@ -268,8 +262,6 @@ func getShopsData(page, size int, q string) ([]shopRecord, int) {
 	})
 }
 
-
-
 // --- Skill Masters (EMF) ---
 
 type skillEntry struct {
@@ -323,5 +315,3 @@ func getMastersData(page, size int, q string) ([]masterRecord, int) {
 		return strings.Contains(strconv.Itoa(m.BehaviorID), q) || strings.Contains(strings.ToLower(m.Name), q)
 	})
 }
-
-
