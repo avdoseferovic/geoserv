@@ -3,7 +3,7 @@ module github.com/avdoseferovic/geoserv
 go 1.25.0
 
 require (
-	github.com/ethanmoffat/eolib-go/v3 v3.0.1
+	github.com/ethanmoffat/eolib-go/v3 v3.1.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/gorilla/websocket v1.5.3

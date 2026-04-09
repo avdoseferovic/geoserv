@@ -52,7 +52,7 @@ func handleStatSkillOpen(ctx context.Context, p *player.Player, reader *player.E
 			ClassRequirement:  spell.ClassID,
 			Cost:              spell.Cost,
 			SkillRequirements: reqs,
-			StatRequirements:  server.CharacterBaseStats{},
+			StatRequirements:  server.SkillStatRequirements{},
 		})
 	}
 

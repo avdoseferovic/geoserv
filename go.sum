@@ -19,8 +19,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/ethanmoffat/eolib-go/v3 v3.0.1 h1:UsVhVkiXaP4gdBnbAbAa+PMYav5FAgclUveIWSmq2R4=
-github.com/ethanmoffat/eolib-go/v3 v3.0.1/go.mod h1:XWBg5GF0k4ONyD+j5tE4zddAxHieYvlc4aDV8Vin3ho=
+github.com/ethanmoffat/eolib-go/v3 v3.1.0 h1:QJpMIeR9QhtlAEqnpypYaVY5tXo1nMRkLwi069jpxLU=
+github.com/ethanmoffat/eolib-go/v3 v3.1.0/go.mod h1:XWBg5GF0k4ONyD+j5tE4zddAxHieYvlc4aDV8Vin3ho=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
