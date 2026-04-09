@@ -24,10 +24,7 @@ func (m *GameMap) npcAttackLocked(npc *NpcState, target *MapCharacter) (server.N
 
 	damage := 0
 	if npcCombatHitRoll(npcAccuracy, target.Evade) {
-		damage = reduceNpcDamageByArmor(npcDamageAmount(npc.ID), target.Armor)
-		if damage > target.HP {
-			damage = target.HP
-		}
+		damage = min(reduceNpcDamageByArmor(npcDamageAmount(npc.ID), target.Armor), target.HP)
 
 		target.HP -= damage
 		if target.HP < 0 {
@@ -67,10 +64,7 @@ func (m *GameMap) DamageNpc(npcIndex, playerID, damage int) (int, bool, int) {
 		return 0, false, m.npcHpPercentageLocked(npc)
 	}
 
-	actualDamage := damage
-	if actualDamage > npc.HP {
-		actualDamage = npc.HP
-	}
+	actualDamage := min(damage, npc.HP)
 
 	// Track opponent with O(1) map lookup; reset bored timer on hit
 	if npc.Opponents == nil {

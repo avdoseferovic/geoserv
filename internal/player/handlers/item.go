@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/avdoseferovic/geoserv/internal/deep"
@@ -230,13 +231,7 @@ func handleItemUse(ctx context.Context, p *player.Player, reader *player.EoReade
 	}
 
 	// Consume the item (unless it's in infinite use list)
-	infinite := false
-	for _, id := range p.Cfg.Items.InfiniteUseItems {
-		if id == pkt.ItemId {
-			infinite = true
-			break
-		}
-	}
+	infinite := slices.Contains(p.Cfg.Items.InfiniteUseItems, pkt.ItemId)
 	if !infinite {
 		p.RemoveItem(pkt.ItemId, 1)
 	}
@@ -278,13 +273,7 @@ func handleItemReport(ctx context.Context, p *player.Player, reader *player.EoRe
 	}
 	p.Title = title
 
-	infinite := false
-	for _, id := range p.Cfg.Items.InfiniteUseItems {
-		if id == pkt.ItemID {
-			infinite = true
-			break
-		}
-	}
+	infinite := slices.Contains(p.Cfg.Items.InfiniteUseItems, pkt.ItemID)
 	if !infinite {
 		p.RemoveItem(pkt.ItemID, 1)
 	}
@@ -299,10 +288,5 @@ func handleItemReport(ctx context.Context, p *player.Player, reader *player.EoRe
 }
 
 func isProtectedItem(p *player.Player, itemID int) bool {
-	for _, protectedID := range p.Cfg.Items.ProtectedItems {
-		if protectedID == itemID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(p.Cfg.Items.ProtectedItems, itemID)
 }

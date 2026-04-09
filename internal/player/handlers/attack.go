@@ -310,10 +310,7 @@ func resolvePlayerMeleeAttack(world player.WorldInterface, attack playerMeleeAtt
 		return
 	}
 
-	actualDamage := damage
-	if actualDamage > target.CharHP {
-		actualDamage = target.CharHP
-	}
+	actualDamage := min(damage, target.CharHP)
 	target.CharHP -= actualDamage
 	if target.CharHP < 0 {
 		target.CharHP = 0
@@ -418,10 +415,7 @@ func awardNpcExp(p *player.Player, baseExp int, killedData server.NpcKilledData)
 		return
 	}
 
-	share := baseExp / len(members)
-	if share < 1 {
-		share = 1
-	}
+	share := max(baseExp/len(members), 1)
 
 	// Give the killer their share (with the kill animation data)
 	giveExpToPlayer(p, share, killedData)

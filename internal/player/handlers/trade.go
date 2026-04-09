@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"github.com/avdoseferovic/geoserv/internal/player"
 	eonet "github.com/ethanmoffat/eolib-go/v3/protocol/net"
@@ -115,10 +116,8 @@ func handleTradeAdd(ctx context.Context, p *player.Player, reader *player.EoRead
 	if p.Inventory[pkt.AddItem.Id] < amount {
 		return nil
 	}
-	for _, protectedID := range p.Cfg.Items.ProtectedItems {
-		if protectedID == pkt.AddItem.Id {
-			return nil
-		}
+	if slices.Contains(p.Cfg.Items.ProtectedItems, pkt.AddItem.Id) {
+		return nil
 	}
 
 	if p.TradeItems == nil {

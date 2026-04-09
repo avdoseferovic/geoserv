@@ -148,10 +148,7 @@ func (m *GameMap) tickSpikes() {
 		if spec != eomap.MapTileSpec_TimedSpikes && spec != eomap.MapTileSpec_Spikes {
 			continue
 		}
-		damage := int(float64(ch.MaxHP) * spikeDmgPct)
-		if damage < 1 {
-			damage = 1
-		}
+		damage := max(int(float64(ch.MaxHP)*spikeDmgPct), 1)
 		if damage >= ch.HP {
 			damage = ch.HP - 1 // spikes don't kill
 		}
@@ -191,10 +188,7 @@ func (m *GameMap) tickDrain() {
 			return
 		}
 		for _, ch := range m.players {
-			damage := int(float64(ch.MaxHP) * dmgPct)
-			if damage < 1 {
-				damage = 1
-			}
+			damage := max(int(float64(ch.MaxHP)*dmgPct), 1)
 			if damage >= ch.HP {
 				damage = ch.HP - 1
 			}
@@ -216,10 +210,7 @@ func (m *GameMap) tickDrain() {
 			if ch.TP <= 0 {
 				continue
 			}
-			damage := int(float64(ch.MaxTP) * dmgPct)
-			if damage < 1 {
-				damage = 1
-			}
+			damage := max(int(float64(ch.MaxTP)*dmgPct), 1)
 			if damage >= ch.TP {
 				damage = ch.TP - 1
 			}
@@ -269,10 +260,7 @@ func (m *GameMap) tickNpcRecovery() {
 		if !npc.Alive || npc.MaxHP <= 0 || npc.HP >= npc.MaxHP {
 			continue
 		}
-		recoverAmount := npc.MaxHP / 20
-		if recoverAmount < 1 {
-			recoverAmount = 1
-		}
+		recoverAmount := max(npc.MaxHP/20, 1)
 		npc.HP += recoverAmount
 		if npc.HP > npc.MaxHP {
 			npc.HP = npc.MaxHP

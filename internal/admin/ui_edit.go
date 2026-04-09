@@ -112,7 +112,7 @@ func (s *Server) handleUIDropsPost(w http.ResponseWriter, r *http.Request) {
 	drops := make([]dropItem, 0, len(itemIDs))
 	pubDrops := make([]eopubsrv.DropRecord, 0, len(itemIDs))
 
-	for i := 0; i < len(itemIDs); i++ {
+	for i := range itemIDs {
 		itemID, _ := strconv.Atoi(itemIDs[i])
 		minAmt, _ := strconv.Atoi(minAmounts[i])
 		maxAmt, _ := strconv.Atoi(maxAmounts[i])
@@ -205,7 +205,7 @@ func (s *Server) handleUIInnsPost(w http.ResponseWriter, r *http.Request) {
 
 	qs := make([]innQuestion, 0, len(questions))
 	pubQs := make([]eopubsrv.InnQuestionRecord, 0, len(questions))
-	for i := 0; i < len(questions); i++ {
+	for i := range questions {
 		qs = append(qs, innQuestion{Question: questions[i], Answer: answers[i]})
 		pubQs = append(pubQs, eopubsrv.InnQuestionRecord{Question: questions[i], Answer: answers[i]})
 	}
@@ -314,7 +314,7 @@ func (s *Server) handleUIShopsPost(w http.ResponseWriter, r *http.Request) {
 
 	var trades []shopTrade
 	var pubTrades []eopubsrv.ShopTradeRecord
-	for i := 0; i < len(tradeItemIDs); i++ {
+	for i := range tradeItemIDs {
 		itemID, _ := strconv.Atoi(tradeItemIDs[i])
 		if itemID == 0 {
 			continue
@@ -334,14 +334,14 @@ func (s *Server) handleUIShopsPost(w http.ResponseWriter, r *http.Request) {
 	var pubCrafts []eopubsrv.ShopCraftRecord
 
 	// Each craft always has exactly 4 ingredients in the form due to padding.
-	for i := 0; i < len(craftItemIDs); i++ {
+	for i := range craftItemIDs {
 		itemID, _ := strconv.Atoi(craftItemIDs[i])
 		if itemID == 0 {
 			continue
 		}
 		var ings []shopIngredient
 		var pubIngs []eopubsrv.ShopCraftIngredientRecord
-		for j := 0; j < 4; j++ {
+		for j := range 4 {
 			idx := i*4 + j
 			if idx < len(ingIDs) {
 				ingID, _ := strconv.Atoi(ingIDs[idx])
@@ -445,7 +445,7 @@ func (s *Server) handleUIMastersPost(w http.ResponseWriter, r *http.Request) {
 	var skills []skillEntry
 	var pubSkills []eopubsrv.SkillMasterSkillRecord
 
-	for i := 0; i < len(skillIDs); i++ {
+	for i := range skillIDs {
 		skillID, _ := strconv.Atoi(skillIDs[i])
 		if skillID == 0 {
 			continue
@@ -461,7 +461,7 @@ func (s *Server) handleUIMastersPost(w http.ResponseWriter, r *http.Request) {
 		chaReq, _ := strconv.Atoi(chaReqs[i])
 
 		var reqs []int
-		for j := 0; j < 4; j++ {
+		for j := range 4 {
 			idx := i*4 + j
 			if idx < len(skillReqsFlat) {
 				reqID, _ := strconv.Atoi(skillReqsFlat[idx])

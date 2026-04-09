@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"strings"
 
 	"github.com/avdoseferovic/geoserv/internal/formula"
@@ -88,9 +89,7 @@ func handleQuestAccept(ctx context.Context, p *player.Player, reader *player.EoR
 		NpcKills:  make(map[int]int),
 	}
 	if qs, ok := p.QuestProgress.ActiveQuests[pkt.QuestId]; ok {
-		for npcID, count := range qs.NpcKills {
-			questCtx.NpcKills[npcID] = count
-		}
+		maps.Copy(questCtx.NpcKills, qs.NpcKills)
 	}
 
 	// Process rules to find the next state

@@ -52,7 +52,7 @@ func (m *GameMap) trimGroundItemsLocked(maxItems int) []int {
 
 	overflowCount := len(m.groundItems) - maxItems
 	removedUIDs := make([]int, 0, overflowCount)
-	for i := 0; i < overflowCount; i++ {
+	for i := range overflowCount {
 		if m.groundItems[i] == nil {
 			continue
 		}

@@ -57,10 +57,7 @@ func paginate[T any](all []T, page, size int, match func(T) bool) ([]T, int) {
 	if start >= total {
 		return nil, total
 	}
-	end := start + size
-	if end > total {
-		end = total
-	}
+	end := min(start+size, total)
 	return filtered[start:end], total
 }
 
